@@ -41,15 +41,15 @@
         .sig-label { padding-top: 3px; }
         .doc-ref { font-size: 7pt; color: #888; margin-top: 3mm; }
         @media print {
-            body { background: transparent; margin: 0; padding: 0; }
+            body { background: transparent; margin: 0; padding: 0 !important; overflow: visible !important; }
             .page-a4 { margin: 0; box-shadow: none; }
             .no-print { display: none !important; }
         }
     </style>
 </head>
-<body>
+<body style="padding-top: 70px; overflow-y: auto;">
     {{-- Toolbar --}}
-    <div class="no-print bg-dark py-3 px-4 shadow sticky-top d-flex justify-content-between align-items-center">
+    <div class="no-print bg-dark py-3 px-4 shadow fixed-top d-flex justify-content-between align-items-center" style="z-index: 1050;">
         <button onclick="history.back()" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-left me-1"></i>Kembali</button>
         <h5 class="text-white mb-0">Preview Surat Jalan (Format BAUER)</h5>
         @if($sj->status === 'APPROVED' && !$sj->deleted_at)
@@ -65,7 +65,8 @@
     </div>
 
     {{-- A4 --}}
-    <div class="page-a4" id="printArea">
+    <div class="pb-5">
+        <div class="page-a4" id="printArea">
         <div class="company-header">
             <img src="{{ asset('img/bauer-logo.jpeg') }}" alt="BAUER Logo" class="bauer-logo-img">
             <div>
@@ -162,6 +163,8 @@
         </div>
 
         <div class="doc-ref">BPI-QR-WS-009 Rev.00</div>
+    </div>
+
     </div>
 
     <script>
