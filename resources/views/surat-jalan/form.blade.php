@@ -131,6 +131,7 @@
         </div>
     </form>
 </div>
+</div> <!-- End of fade-in container -->
 
 {{-- Preview Modal --}}
 <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
@@ -208,8 +209,6 @@
             </div>
         </div>
     </div>
-    </div>
-</div>
 </div>
 @endsection
 
