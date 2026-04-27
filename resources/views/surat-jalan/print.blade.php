@@ -47,9 +47,9 @@
         }
     </style>
 </head>
-<body style="padding-top: 70px; overflow-y: auto;">
+<body class="bg-light">
     {{-- Toolbar --}}
-    <div class="no-print bg-dark py-3 px-4 shadow fixed-top d-flex justify-content-between align-items-center" style="z-index: 1050;">
+    <div class="no-print bg-dark py-3 px-4 shadow d-flex justify-content-between align-items-center">
         <button onclick="history.back()" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-left me-1"></i>Kembali</button>
         <h5 class="text-white mb-0">Preview Surat Jalan (Format BAUER)</h5>
         @if($sj->status === 'APPROVED' && !$sj->deleted_at)
