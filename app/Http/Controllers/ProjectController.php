@@ -7,7 +7,6 @@ use App\Models\SuratJalan;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
-use ZipArchive;
 
 
 class ProjectController extends Controller
@@ -56,7 +55,7 @@ class ProjectController extends Controller
         return response()->json(['success' => true, 'message' => 'Project berhasil dihapus.']);
     }
 
-    public function exportZip(Project $project)
+    public function exportPdf(Project $project)
     {
         $suratJalans = SuratJalan::where('project_id', $project->id)
             ->whereNull('deleted_at')
@@ -71,28 +70,17 @@ class ProjectController extends Controller
             ], 422);
         }
 
-        $zip = new ZipArchive();
-        $zipFileName = 'Export-' . Str::slug($project->name) . '-' . date('Ymd-His') . '.zip';
-        $zipPath = storage_path('app/public/' . $zipFileName);
+        $fileName = 'Export-' . Str::slug($project->name) . '-' . date('Ymd-His') . '.pdf';
 
-        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === TRUE) {
-            foreach ($suratJalans as $sj) {
-                // Load PDF with specific options for better layout in dompdf
-                $pdf = Pdf::loadView('surat-jalan.print', ['sj' => $sj])
-                    ->setPaper('a4', 'portrait')
-                    ->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true]);
+        $pdf = Pdf::loadView('surat-jalan.export-batch', ['suratJalans' => $suratJalans])
+            ->setPaper('a4', 'portrait')
+            ->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled'      => false,
+                'defaultFont'          => 'Arial',
+            ]);
 
-                $cleanNoSj = str_replace(['/', '\\'], '-', $sj->no_surat_jalan);
-                $pdfFileName = Str::slug($cleanNoSj) . '.pdf';
-                
-                $zip->addFromString($pdfFileName, $pdf->output());
-            }
-            $zip->close();
-        } else {
-            return response()->json(['success' => false, 'message' => 'Gagal membuat file ZIP.'], 500);
-        }
-
-        return response()->download($zipPath)->deleteFileAfterSend(true);
+        return $pdf->download($fileName);
     }
 }
 

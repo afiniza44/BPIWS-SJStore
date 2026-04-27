@@ -1,10 +1,4 @@
-FROM php:8.2-apache
-
-# Enable Apache mod_rewrite for Laravel routing
-# Fix MPM conflict: only mpm_prefork is compatible with mod_php
-RUN a2enmod rewrite \
-    && a2dismod mpm_event mpm_worker || true \
-    && a2enmod mpm_prefork
+FROM php:8.2-cli
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -24,16 +18,6 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_pgsql pgsql mbstring exif pcntl bcmath gd zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Set Apache DocumentRoot to Laravel's public directory
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
-RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
-
-# Allow .htaccess overrides
-RUN echo '<Directory /var/www/html/public>\n    AllowOverride All\n    Require all granted\n</Directory>' \
-    > /etc/apache2/conf-available/laravel.conf \
-    && a2enconf laravel
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -61,14 +45,11 @@ RUN php artisan package:discover --ansi \
     && php artisan view:cache
 
 # Fix storage permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache
 
-EXPOSE 80
+EXPOSE $PORT
 
-# Run migrations then start Apache on Railway's dynamic port
-CMD sed -i "s/Listen 80/Listen ${PORT:-80}/" /etc/apache2/ports.conf \
-    && sed -i "s/<VirtualHost \*:80>/<VirtualHost *:${PORT:-80}>/" /etc/apache2/sites-available/*.conf \
-    && php artisan migrate --force \
-    && apache2-foreground
-
+# PHP_CLI_SERVER_WORKERS enables multi-worker support in php -S (PHP 7.4+)
+# This allows concurrent requests so heavy export jobs don't block other pages
+CMD PHP_CLI_SERVER_WORKERS=8 php artisan migrate --force \
+    && PHP_CLI_SERVER_WORKERS=8 php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
