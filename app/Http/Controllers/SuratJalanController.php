@@ -127,9 +127,10 @@ class SuratJalanController extends Controller
                         'order_index'      => $index,
                     ]);
                 }
-
-                session(['last_no_sj' => $noSJ, 'last_sj_status' => $status]);
             });
+
+            // Set session AFTER transaction commits (not inside — avoids any session-DB interaction)
+            session(['last_no_sj' => $noSJ, 'last_sj_status' => $status]);
 
             return response()->json([
                 'success'        => true,
