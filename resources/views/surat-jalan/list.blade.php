@@ -273,7 +273,7 @@
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Memproses...';
         
-        window.location.href = `/projects/${currentProjectId}/export-pdf`;
+        window.location.href = `/projects/${currentProjectId}/export-zip`;
         
         setTimeout(() => {
             btn.innerHTML = originalHtml;

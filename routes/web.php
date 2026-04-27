@@ -55,5 +55,5 @@ Route::middleware('auth')->group(function () {
     });
 
     // ─── Project Export ──────────────────────────────────────────────────────
-    Route::get('/projects/{project}/export-pdf', [ProjectController::class, 'exportPdf'])->name('projects.export-pdf');
+    Route::get('/projects/{project}/export-zip', [ProjectController::class, 'exportZip'])->name('projects.export-zip');
 });

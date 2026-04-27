@@ -7,6 +7,7 @@ use App\Models\SuratJalan;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
+use ZipArchive;
 
 
 class ProjectController extends Controller
@@ -55,7 +56,7 @@ class ProjectController extends Controller
         return response()->json(['success' => true, 'message' => 'Project berhasil dihapus.']);
     }
 
-    public function exportPdf(Project $project)
+    public function exportZip(Project $project)
     {
         $suratJalans = SuratJalan::where('project_id', $project->id)
             ->whereNull('deleted_at')
@@ -66,21 +67,36 @@ class ProjectController extends Controller
         if ($suratJalans->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tidak ada Surat Jalan yang disetujui (APPROVED) untuk di-export.'
+                'message' => 'Tidak ada Surat Jalan yang disetujui (APPROVED) untuk di-export.',
             ], 422);
         }
 
-        $fileName = 'Export-' . Str::slug($project->name) . '-' . date('Ymd-His') . '.pdf';
+        $zip         = new ZipArchive();
+        $zipFileName = 'Export-' . Str::slug($project->name) . '-' . date('Ymd-His') . '.zip';
+        $zipPath     = storage_path('app/' . $zipFileName);
 
-        $pdf = Pdf::loadView('surat-jalan.export-batch', ['suratJalans' => $suratJalans])
-            ->setPaper('a4', 'portrait')
-            ->setOptions([
-                'isHtml5ParserEnabled' => true,
-                'isRemoteEnabled'      => false,
-                'defaultFont'          => 'Arial',
-            ]);
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== TRUE) {
+            return response()->json(['success' => false, 'message' => 'Gagal membuat file ZIP.'], 500);
+        }
 
-        return $pdf->download($fileName);
+        foreach ($suratJalans as $sj) {
+            // Use CDN-free template so DomPDF doesn't hang on network requests
+            $pdf = Pdf::loadView('surat-jalan.export-batch', ['suratJalans' => collect([$sj])])
+                ->setPaper('a4', 'portrait')
+                ->setOptions([
+                    'isHtml5ParserEnabled' => true,
+                    'isRemoteEnabled'      => false,
+                    'defaultFont'          => 'Arial',
+                ]);
+
+            $cleanNoSj   = str_replace(['/', '\\'], '-', $sj->no_surat_jalan);
+            $pdfFileName = Str::slug($cleanNoSj) . '.pdf';
+            $zip->addFromString($pdfFileName, $pdf->output());
+        }
+
+        $zip->close();
+
+        return response()->download($zipPath)->deleteFileAfterSend(true);
     }
 }
 
