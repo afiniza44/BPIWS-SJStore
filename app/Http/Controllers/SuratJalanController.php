@@ -194,4 +194,30 @@ class SuratJalanController extends Controller
 
         return response()->json($deleted);
     }
+
+    public function exportPdf(SuratJalan $suratJalan)
+    {
+        $suratJalan->load(['details.barang']);
+        
+        $logoPath = public_path('img/bauer-logo.jpeg');
+        $logoSrc  = file_exists($logoPath)
+            ? 'data:image/jpeg;base64,' . base64_encode(file_get_contents($logoPath))
+            : null;
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('surat-jalan.export-batch', [
+                'suratJalans' => collect([$suratJalan]),
+                'logoSrc'     => $logoSrc,
+            ])
+            ->setPaper('a4', 'portrait')
+            ->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled'      => false,
+                'defaultFont'          => 'Helvetica',
+            ]);
+
+        $cleanNoSj = str_replace(['/', '\\'], '-', $suratJalan->no_surat_jalan);
+        $fileName  = \Illuminate\Support\Str::slug($cleanNoSj) . '.pdf';
+        
+        return $pdf->download($fileName);
+    }
 }

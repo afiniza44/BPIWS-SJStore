@@ -50,11 +50,11 @@
                 </div>
             </div>
             {{-- Export Folder --}}
-            <div class="project-card" onclick="downloadProjectZip()">
+            <div class="project-card" onclick="bulkDownloadProjectPdfs()">
                 <i class="bi bi-folder-fill folder-icon text-success"></i>
                 <div class="folder-info">
                     <div class="folder-name">Export (PDF)</div>
-                    <div class="folder-count text-success fw-bold"><i class="bi bi-download me-1"></i>Download Project ZIP</div>
+                    <div class="folder-count text-success fw-bold"><i class="bi bi-download me-1"></i>Bulk Download PDF</div>
                 </div>
             </div>
         </div>
@@ -81,8 +81,8 @@
                     <i class="bi bi-trash me-1"></i>Hapus Folder
                 </button>
                 @endif
-                <button class="btn btn-sm btn-outline-success shadow-sm" id="btnDownloadZip" style="display:none;" onclick="downloadZipFromTable(this)">
-                    <i class="bi bi-file-earmark-zip me-1"></i>Download ZIP
+                <button class="btn btn-sm btn-outline-success shadow-sm" id="btnDownloadZip" style="display:none;" onclick="bulkDownloadFromTable(this)">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Bulk Download
                 </button>
                 <a id="btnBuatBaruProject" href="{{ route('surat-jalan.create') }}" class="btn btn-primary shadow-sm btn-sm">
                     <i class="bi bi-plus-lg me-1"></i>Buat Baru
@@ -269,31 +269,62 @@
         }
     }
 
-    function downloadProjectZip() {
+    function bulkDownloadProjectPdfs() {
         if (!currentProjectId) return;
         
         const btn = event.currentTarget.querySelector('.folder-count');
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Memproses...';
         
-        window.location.href = `/projects/${currentProjectId}/export-zip`;
-        
-        setTimeout(() => {
+        executeBulkDownload().finally(() => {
             btn.innerHTML = originalHtml;
-        }, 3000);
+        });
     }
 
     function showActiveDocuments() {
         loadSJByProject(currentProjectId, currentProjectName);
     }
 
-    function downloadZipFromTable(btn) {
+    function bulkDownloadFromTable(btn) {
         if (!currentProjectId || currentProjectId === 'none') return;
         const orig = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Memproses...';
-        window.location.href = `/projects/${currentProjectId}/export-zip`;
-        setTimeout(() => { btn.disabled = false; btn.innerHTML = orig; }, 4000);
+        
+        executeBulkDownload().finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = orig;
+        });
+    }
+
+    async function executeBulkDownload() {
+        try {
+            const url = `/surat-jalan/json?project_id=${currentProjectId}`;
+            const response = await fetch(url, { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF } });
+            const data = await response.json();
+            
+            const approvedSJs = data.filter(sj => sj.status === 'APPROVED');
+            if (approvedSJs.length === 0) {
+                alert('Tidak ada Surat Jalan yang APPROVED untuk didownload.');
+                return;
+            }
+
+            // Download sequentially with a slight delay to avoid browser blocking
+            for (let i = 0; i < approvedSJs.length; i++) {
+                const sj = approvedSJs[i];
+                const link = document.createElement('a');
+                link.href = `/surat-jalan/${sj.id}/export-pdf`;
+                link.download = '';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                await new Promise(resolve => setTimeout(resolve, 800));
+            }
+        } catch (error) {
+            console.error('Bulk download error:', error);
+            alert('Gagal mendownload PDF.');
+        }
     }
 
     function loadSJByProject(projectId, projectName) {

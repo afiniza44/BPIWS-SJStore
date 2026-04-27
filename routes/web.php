@@ -27,6 +27,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/surat-jalan/create', [SuratJalanController::class, 'create'])->name('surat-jalan.create');
     Route::post('/surat-jalan', [SuratJalanController::class, 'store'])->name('surat-jalan.store');
     Route::get('/surat-jalan/{id}/print', [SuratJalanController::class, 'show'])->name('surat-jalan.show');
+    Route::get('/surat-jalan/{suratJalan}/export-pdf', [SuratJalanController::class, 'exportPdf'])->name('surat-jalan.export-pdf');
 
     // ── Admin-only Surat Jalan actions ───────────────────────────────────────
     Route::middleware('admin')->group(function () {
