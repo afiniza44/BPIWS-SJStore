@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cetak Surat Jalan — {{ $sj->no_surat_jalan }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        /* No external CDN — DomPDF must not make network requests */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { background-color: #f7f9fa; font-family: Arial, sans-serif; font-size: 10pt; font-weight: normal; }
         @page { size: A4 portrait; margin: 0; }
         .page-a4 { width: 210mm; min-height: 297mm; padding: 8mm 10mm; margin: 10mm auto; background: white; box-shadow: 0 4px 15px rgba(0,0,0,.12); box-sizing: border-box; display: flex; flex-direction: column; }
@@ -111,24 +113,24 @@
                     @if($detail->type === 'group_title')
                         @php $insideGroup = true; @endphp
                         <tr>
-                            <td style="text-align:center">{{ $rowNum++ }}</td>
+                            <td class="text-center">{{ $rowNum++ }}</td>
                             <td></td>
-                            <td colspan="4" style="padding-left:6px;font-weight:bold">{{ $detail->group_title_text }}</td>
+                            <td colspan="4" class="ps-2 fw-bold">{{ $detail->group_title_text }}</td>
                         </tr>
                     @else
                         @php $numStr = $insideGroup ? '-' : $rowNum++; @endphp
                         <tr>
-                            <td style="text-align:center">{{ $numStr }}</td>
-                            <td style="text-align:center">{{ $detail->barang?->sku ?? '-' }}</td>
-                            <td style="padding-left:{{ $insideGroup ? '16px' : '6px' }}">{{ $detail->barang?->nama_barang ?? '-' }}</td>
-                            <td style="text-align:center;font-weight:bold">{{ $detail->qty }}</td>
-                            <td style="text-align:center">{{ $detail->barang?->satuan ?? '-' }}</td>
-                            <td style="text-align:center">{{ $detail->remark ?? '' }}</td>
+                            <td class="text-center">{{ $numStr }}</td>
+                            <td class="text-center">{{ $detail->barang?->sku ?? '-' }}</td>
+                            <td class="{{ $insideGroup ? 'ps-4' : 'ps-2' }}">{{ $detail->barang?->nama_barang ?? '-' }}</td>
+                            <td class="text-center fw-bold">{{ $detail->qty }}</td>
+                            <td class="text-center">{{ $detail->barang?->satuan ?? '-' }}</td>
+                            <td class="text-center">{{ $detail->remark ?? '' }}</td>
                         </tr>
                     @endif
                 @endforeach
                 @if($sj->details->isEmpty())
-                <tr><td colspan="6" style="text-align:center;padding:6px;color:#888">Tidak ada item.</td></tr>
+                <tr><td colspan="6" class="text-center py-2 text-muted">Tidak ada item.</td></tr>
                 @endif
             </tbody>
         </table>
