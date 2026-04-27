@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         \App\Providers\NeonServiceProvider::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trustProxies(at: '*');
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminOnly::class,
         ]);
