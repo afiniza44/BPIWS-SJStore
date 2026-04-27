@@ -65,8 +65,8 @@
     </div>
 
     {{-- A4 --}}
-    <div class="pb-5">
-        <div class="page-a4" id="printArea">
+    <div class="pb-5" style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+        <div class="page-a4" id="printArea" style="margin-left: auto; margin-right: auto;">
         <div class="company-header">
             <img src="{{ asset('img/bauer-logo.jpeg') }}" alt="BAUER Logo" class="bauer-logo-img">
             <div>
