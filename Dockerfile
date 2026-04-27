@@ -1,7 +1,10 @@
 FROM php:8.2-apache
 
 # Enable Apache mod_rewrite for Laravel routing
-RUN a2enmod rewrite
+# Fix MPM conflict: only mpm_prefork is compatible with mod_php
+RUN a2enmod rewrite \
+    && a2dismod mpm_event mpm_worker || true \
+    && a2enmod mpm_prefork
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
