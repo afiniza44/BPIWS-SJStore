@@ -81,12 +81,20 @@ class ProjectController extends Controller
 
         foreach ($suratJalans as $sj) {
             // Use CDN-free template so DomPDF doesn't hang on network requests
-            $pdf = Pdf::loadView('surat-jalan.export-batch', ['suratJalans' => collect([$sj])])
+            $logoPath = public_path('img/bauer-logo.jpeg');
+            $logoSrc  = file_exists($logoPath)
+                ? 'data:image/jpeg;base64,' . base64_encode(file_get_contents($logoPath))
+                : null;
+
+            $pdf = Pdf::loadView('surat-jalan.export-batch', [
+                    'suratJalans' => collect([$sj]),
+                    'logoSrc'     => $logoSrc,
+                ])
                 ->setPaper('a4', 'portrait')
                 ->setOptions([
                     'isHtml5ParserEnabled' => true,
                     'isRemoteEnabled'      => false,
-                    'defaultFont'          => 'Arial',
+                    'defaultFont'          => 'DejaVu Sans',
                 ]);
 
             $cleanNoSj   = str_replace(['/', '\\'], '-', $sj->no_surat_jalan);
