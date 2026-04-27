@@ -38,18 +38,17 @@ COPY . .
 # Build frontend assets
 RUN npm run build
 
-# Run Laravel post-install scripts
-RUN php artisan package:discover --ansi \
-    && php artisan config:cache \
-    && php artisan route:cache \
-    && php artisan view:cache
+# Run Laravel post-install scripts (no caching here — env vars not available at build time)
+RUN php artisan package:discover --ansi
 
 # Fix storage permissions
 RUN chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache
 
 EXPOSE $PORT
 
-# PHP_CLI_SERVER_WORKERS enables multi-worker support in php -S (PHP 7.4+)
-# This allows concurrent requests so heavy export jobs don't block other pages
-CMD PHP_CLI_SERVER_WORKERS=8 php artisan migrate --force \
+# Cache config/routes/views at startup when env vars are available, then serve
+CMD php artisan config:cache \
+    && php artisan route:cache \
+    && php artisan view:cache \
+    && php artisan migrate --force \
     && PHP_CLI_SERVER_WORKERS=8 php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
