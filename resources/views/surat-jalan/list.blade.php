@@ -81,6 +81,9 @@
                     <i class="bi bi-trash me-1"></i>Hapus Folder
                 </button>
                 @endif
+                <button class="btn btn-sm btn-outline-success shadow-sm" id="btnDownloadZip" style="display:none;" onclick="downloadZipFromTable(this)">
+                    <i class="bi bi-file-earmark-zip me-1"></i>Download ZIP
+                </button>
                 <a id="btnBuatBaruProject" href="{{ route('surat-jalan.create') }}" class="btn btn-primary shadow-sm btn-sm">
                     <i class="bi bi-plus-lg me-1"></i>Buat Baru
                 </a>
@@ -284,6 +287,15 @@
         loadSJByProject(currentProjectId, currentProjectName);
     }
 
+    function downloadZipFromTable(btn) {
+        if (!currentProjectId || currentProjectId === 'none') return;
+        const orig = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Memproses...';
+        window.location.href = `/projects/${currentProjectId}/export-zip`;
+        setTimeout(() => { btn.disabled = false; btn.innerHTML = orig; }, 4000);
+    }
+
     function loadSJByProject(projectId, projectName) {
         currentProjectId   = projectId;
         currentProjectName = projectName;
@@ -304,8 +316,10 @@
 
         const btnRename = document.getElementById('btnRenameProject');
         const btnDelete = document.getElementById('btnDeleteProject');
+        const btnZip    = document.getElementById('btnDownloadZip');
         if (btnRename) btnRename.style.display = (IS_ADMIN && projectId !== 'none') ? '' : 'none';
         if (btnDelete) btnDelete.style.display = (IS_ADMIN && projectId !== 'none') ? '' : 'none';
+        if (btnZip)    btnZip.style.display    = (projectId !== 'none') ? '' : 'none';
 
         let url = '/surat-jalan/json';
         if (projectId === 'none') url += '?unassigned=true';
