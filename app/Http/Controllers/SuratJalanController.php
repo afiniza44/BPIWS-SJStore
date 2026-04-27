@@ -81,20 +81,20 @@ class SuratJalanController extends Controller
                 }
                 $noSJ = $manualNo;
             } else {
-                // Only consider entries whose number starts with digits to avoid CAST errors
-                $last = SuratJalan::withTrashed()
+                // Fetch all matching SJ numbers and find the max in PHP
+                // Avoids CAST/SPLIT_PART raw SQL that can corrupt Neon pgBouncer connections
+                $existing = SuratJalan::withTrashed()
                     ->where('no_surat_jalan', 'LIKE', "%{$suffix}")
-                    ->whereRaw("no_surat_jalan ~ '^[0-9]+'")
-                    ->orderByRaw("CAST(SPLIT_PART(no_surat_jalan, ' ', 1) AS INTEGER) DESC")
-                    ->first();
+                    ->pluck('no_surat_jalan');
 
-                $nextNum = 1;
-                if ($last) {
-                    $parts   = explode(' ', $last->no_surat_jalan);
-                    $lastNum = (int) ($parts[0] ?? 0);
-                    if ($lastNum > 0) $nextNum = $lastNum + 1;
+                $maxNum = 0;
+                foreach ($existing as $noSj) {
+                    $parts = explode(' ', $noSj);
+                    $num   = (int) ($parts[0] ?? 0);
+                    if ($num > $maxNum) $maxNum = $num;
                 }
-                $noSJ = str_pad($nextNum, 3, '0', STR_PAD_LEFT) . " {$suffix}";
+
+                $noSJ = str_pad($maxNum + 1, 3, '0', STR_PAD_LEFT) . " {$suffix}";
             }
 
             DB::transaction(function () use ($request, $user, $status, $noSJ) {
