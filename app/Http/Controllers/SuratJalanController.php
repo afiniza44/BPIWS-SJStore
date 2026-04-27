@@ -61,79 +61,89 @@ class SuratJalanController extends Controller
             'items'    => 'required|array|min:1',
         ]);
 
-        $user   = auth()->user();
-        $status = $user->isAdmin() ? 'APPROVED' : 'PENDING';
+        try {
+            $user   = auth()->user();
+            $status = $user->isAdmin() ? 'APPROVED' : 'PENDING';
 
-        // Auto-numbering
-        $now    = Carbon::now();
-        $mm     = $now->format('m');
-        $yyyy   = $now->year;
-        $suffix = "/{$mm}/BPI/{$yyyy}";
+            // Auto-numbering
+            $now    = Carbon::now();
+            $mm     = $now->format('m');
+            $yyyy   = $now->year;
+            $suffix = "/{$mm}/BPI/{$yyyy}";
 
-        $manualNo = trim($request->input('manual_no', ''));
-        if ($manualNo !== '') {
-            // Check for duplicate
-            if (SuratJalan::where('no_surat_jalan', $manualNo)->exists()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "No. Surat Jalan \"{$manualNo}\" sudah ada di database.",
-                ], 422);
+            $manualNo = trim($request->input('manual_no', ''));
+            if ($manualNo !== '') {
+                if (SuratJalan::where('no_surat_jalan', $manualNo)->exists()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "No. Surat Jalan \"{$manualNo}\" sudah ada di database.",
+                    ], 422);
+                }
+                $noSJ = $manualNo;
+            } else {
+                // Only consider entries whose number starts with digits to avoid CAST errors
+                $last = SuratJalan::withTrashed()
+                    ->where('no_surat_jalan', 'LIKE', "%{$suffix}")
+                    ->whereRaw("no_surat_jalan ~ '^[0-9]+'")
+                    ->orderByRaw("CAST(SPLIT_PART(no_surat_jalan, ' ', 1) AS INTEGER) DESC")
+                    ->first();
+
+                $nextNum = 1;
+                if ($last) {
+                    $parts   = explode(' ', $last->no_surat_jalan);
+                    $lastNum = (int) ($parts[0] ?? 0);
+                    if ($lastNum > 0) $nextNum = $lastNum + 1;
+                }
+                $noSJ = str_pad($nextNum, 3, '0', STR_PAD_LEFT) . " {$suffix}";
             }
-            $noSJ = $manualNo;
-        } else {
-            $last = SuratJalan::withTrashed()
-                ->where('no_surat_jalan', 'LIKE', "%{$suffix}")
-                ->orderByRaw("CAST(SPLIT_PART(no_surat_jalan, ' ', 1) AS INTEGER) DESC")
-                ->first();
 
-            $nextNum = 1;
-            if ($last) {
-                $parts   = explode(' ', $last->no_surat_jalan);
-                $lastNum = (int) ($parts[0] ?? 0);
-                if ($lastNum > 0) $nextNum = $lastNum + 1;
-            }
-            $noSJ = str_pad($nextNum, 3, '0', STR_PAD_LEFT) . " {$suffix}";
-        }
+            DB::transaction(function () use ($request, $user, $status, $noSJ) {
+                $sj = SuratJalan::create([
+                    'no_surat_jalan' => $noSJ,
+                    'tanggal'        => $request->tanggal,
+                    'tujuan'         => $request->tujuan,
+                    'attn'           => $request->attn,
+                    'phone_header'   => $request->phone_header,
+                    'note'           => $request->note,
+                    'taken_by'       => $request->taken_by,
+                    'vehicle_no'     => $request->vehicle_no,
+                    'phone_footer'   => $request->phone_footer,
+                    'eta'            => $request->eta ?: null,
+                    'foreman'        => $request->foreman,
+                    'woc'            => $request->woc,
+                    'status'         => $status,
+                    'user_id'        => $user->id,
+                    'project_id'     => $request->project_id ?: null,
+                ]);
 
-        DB::transaction(function () use ($request, $user, $status, $noSJ) {
-            $sj = SuratJalan::create([
+                foreach ($request->items as $index => $item) {
+                    DetailSuratJalan::create([
+                        'surat_jalan_id'   => $sj->id,
+                        'type'             => $item['type'],
+                        'group_title_text' => $item['type'] === 'group_title' ? ($item['text'] ?? null) : null,
+                        'barang_id'        => $item['type'] === 'item' ? ($item['id'] ?? null) : null,
+                        'qty'              => $item['type'] === 'item' ? ($item['qty'] ?? null) : null,
+                        'remark'           => $item['type'] === 'item' ? ($item['remark'] ?? null) : null,
+                        'order_index'      => $index,
+                    ]);
+                }
+
+                session(['last_no_sj' => $noSJ, 'last_sj_status' => $status]);
+            });
+
+            return response()->json([
+                'success'        => true,
                 'no_surat_jalan' => $noSJ,
-                'tanggal'        => $request->tanggal,
-                'tujuan'         => $request->tujuan,
-                'attn'           => $request->attn,
-                'phone_header'   => $request->phone_header,
-                'note'           => $request->note,
-                'taken_by'       => $request->taken_by,
-                'vehicle_no'     => $request->vehicle_no,
-                'phone_footer'   => $request->phone_footer,
-                'eta'            => $request->eta ?: null,
-                'foreman'        => $request->foreman,
-                'woc'            => $request->woc,
                 'status'         => $status,
-                'user_id'        => $user->id,
-                'project_id'     => $request->project_id ?: null,
             ]);
 
-            foreach ($request->items as $index => $item) {
-                DetailSuratJalan::create([
-                    'surat_jalan_id'   => $sj->id,
-                    'type'             => $item['type'],
-                    'group_title_text' => $item['type'] === 'group_title' ? ($item['text'] ?? null) : null,
-                    'barang_id'        => $item['type'] === 'item' ? ($item['id'] ?? null) : null,
-                    'qty'              => $item['type'] === 'item' ? ($item['qty'] ?? null) : null,
-                    'remark'           => $item['type'] === 'item' ? ($item['remark'] ?? null) : null,
-                    'order_index'      => $index,
-                ]);
-            }
-
-            session(['last_no_sj' => $noSJ, 'last_sj_status' => $status]);
-        });
-
-        return response()->json([
-            'success'        => true,
-            'no_surat_jalan' => $noSJ,
-            'status'         => $status,
-        ]);
+        } catch (\Throwable $e) {
+            \Log::error('SuratJalan store error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Server Error: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function show($id)
