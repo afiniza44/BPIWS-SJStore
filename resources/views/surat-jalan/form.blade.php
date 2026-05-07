@@ -488,14 +488,14 @@
                 cols = row.trim().split(/\s{2,}/);
             }
             
-            // Jika masih gagal (karena hanya dipisah 1 spasi), gunakan heuristic word parsing
-            if (cols.length < 2) {
+            // Jika data bukan tab-separated sempurna (misal dari PDF copy yang kadang memuat spasi/tab tak terduga)
+            if (cols.length < 4) {
                 let words = row.trim().split(/\s+/);
                 if (words.length >= 4) {
                     let qtyIndex = -1;
-                    // Cari angka qty dari belakang
+                    // Cari angka qty dari belakang. Regex ini mencocokkan angka dengan titik/koma (misal 1,000 atau 2.5)
                     for (let i = words.length - 1; i >= 2; i--) {
-                        if (/^\d+([.,]\d+)?$/.test(words[i])) {
+                        if (/^[0-9.,]*[0-9][0-9.,]*$/.test(words[i])) {
                             qtyIndex = i;
                             break;
                         }
@@ -512,7 +512,7 @@
                 }
             }
             
-            if (cols.length < 2) return; // Skip baris yang tidak valid
+            if (cols.length < 4) return; // Skip baris yang masih tidak valid
 
             // Expected columns dari klien: 1. No, 2. Asset/ID No., 3. Description, 4. Qty, 5. Unit, 6. Remark
             const asset_id = cols[1]?.trim() || '';
