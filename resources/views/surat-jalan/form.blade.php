@@ -483,10 +483,33 @@
         rows.forEach(row => {
             if (!row.trim()) return;
             let cols = row.split('\t');
-            
             // Jika tidak ada tab (mungkin di-copy dari PDF/WA), coba split dengan 2 spasi atau lebih
             if (cols.length < 2) {
                 cols = row.trim().split(/\s{2,}/);
+            }
+            
+            // Jika masih gagal (karena hanya dipisah 1 spasi), gunakan heuristic word parsing
+            if (cols.length < 2) {
+                let words = row.trim().split(/\s+/);
+                if (words.length >= 4) {
+                    let qtyIndex = -1;
+                    // Cari angka qty dari belakang
+                    for (let i = words.length - 1; i >= 2; i--) {
+                        if (/^\d+([.,]\d+)?$/.test(words[i])) {
+                            qtyIndex = i;
+                            break;
+                        }
+                    }
+                    if (qtyIndex !== -1) {
+                        cols = [];
+                        cols[0] = words[0]; // No
+                        cols[1] = words[1]; // Asset ID
+                        cols[2] = words.slice(2, qtyIndex).join(' '); // Description
+                        cols[3] = words[qtyIndex]; // Qty
+                        cols[4] = words[qtyIndex + 1] || ''; // Unit
+                        cols[5] = words.slice(qtyIndex + 2).join(' '); // Remark
+                    }
+                }
             }
             
             if (cols.length < 2) return; // Skip baris yang tidak valid
