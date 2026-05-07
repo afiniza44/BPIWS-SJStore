@@ -52,14 +52,13 @@
     <div class="no-print bg-dark py-3 px-4 shadow d-flex justify-content-between align-items-center">
         <button onclick="history.back()" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-left me-1"></i>Kembali</button>
         <h5 class="text-white mb-0">Preview Surat Jalan (Format BAUER)</h5>
-        @if($sj->status === 'APPROVED' && !$sj->deleted_at)
         <button class="btn btn-primary" onclick="window.print()">
             <i class="bi bi-printer me-2"></i>Cetak Dokumen
         </button>
         @else
         <button class="btn btn-secondary" disabled>
             <i class="bi bi-info-circle me-2"></i>
-            {{ $sj->deleted_at ? 'Sudah Dihapus (Preview Only)' : 'Belum di-Approve' }}
+            Sudah Dihapus (Preview Only)
         </button>
         @endif
     </div>
@@ -118,6 +117,16 @@
                             <td></td>
                             <td colspan="4" class="ps-2 fw-bold">{{ $detail->group_title_text }}</td>
                         </tr>
+                    @elseif($detail->type === 'manual_item')
+                        @php $numStr = $insideGroup ? '-' : $rowNum++; @endphp
+                        <tr>
+                            <td class="text-center">{{ $numStr }}</td>
+                            <td class="text-center">-</td>
+                            <td class="{{ $insideGroup ? 'ps-4' : 'ps-2' }}">{{ $detail->manual_nama_barang }}</td>
+                            <td class="text-center fw-bold">{{ $detail->qty }}</td>
+                            <td class="text-center">{{ $detail->manual_satuan ?? '-' }}</td>
+                            <td class="text-center">{{ $detail->remark ?? '' }}</td>
+                        </tr>
                     @else
                         @php $numStr = $insideGroup ? '-' : $rowNum++; @endphp
                         <tr>
@@ -168,8 +177,8 @@
     </div>
 
     <script>
-        // Auto-print if ?print=1 and status APPROVED
-        @if(request('print') == '1' && $sj->status === 'APPROVED' && !$sj->deleted_at)
+        // Auto-print if ?print=1
+        @if(request('print') == '1' && !$sj->deleted_at)
         window.addEventListener('load', () => setTimeout(() => window.print(), 600));
         @endif
     </script>

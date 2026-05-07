@@ -97,8 +97,7 @@
                             <th width="18%">No. SJ</th>
                             <th width="12%">Tanggal</th>
                             <th width="22%">Tujuan</th>
-                            <th width="13%">Pembuat</th>
-                            <th width="12%">Status</th>
+                            <th width="25%">Pembuat</th>
                             <th width="23%" class="text-end">Aksi</th>
                         </tr>
                     </thead>
@@ -303,9 +302,9 @@
             const response = await fetch(url, { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF } });
             const data = await response.json();
             
-            const approvedSJs = data.filter(sj => sj.status === 'APPROVED');
+            const approvedSJs = data;
             if (approvedSJs.length === 0) {
-                alert('Tidak ada Surat Jalan yang APPROVED untuk didownload.');
+                alert('Tidak ada Surat Jalan untuk didownload.');
                 return;
             }
 
@@ -356,30 +355,20 @@
         if (projectId === 'none') url += '?unassigned=true';
         else url += `?project_id=${projectId}`;
 
-        const tbody = document.getElementById('sjTableBody');
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border spinner-border-sm me-2"></div>Memuat...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4"><div class="spinner-border spinner-border-sm me-2"></div>Memuat...</td></tr>';
 
         fetch(url, { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF } })
             .then(r => r.json())
             .then(data => {
                 tbody.innerHTML = '';
                 if (data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted"><i class="bi bi-inbox fs-3 d-block mb-2"></i>Belum ada Surat Jalan di folder ini.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted"><i class="bi bi-inbox fs-3 d-block mb-2"></i>Belum ada Surat Jalan di folder ini.</td></tr>';
                     return;
                 }
                 data.forEach(sj => {
-                    let badge = '';
-                    if (sj.status === 'PENDING') badge = '<span class="badge bg-warning text-dark">PENDING</span>';
-                    else if (sj.status === 'APPROVED') badge = '<span class="badge bg-success">APPROVED</span>';
-                    else badge = `<span class="badge bg-danger">${sj.status}</span>`;
-
                     let aksi = `<a href="/surat-jalan/${sj.id}/print" class="btn btn-sm btn-outline-info rounded-pill px-3 me-1 mb-1"><i class="bi bi-eye"></i> Detail</a>`;
-                    if (sj.status === 'APPROVED') {
-                        aksi += `<a href="/surat-jalan/${sj.id}/print?print=1" class="btn btn-sm btn-outline-dark rounded-pill px-3 mb-1"><i class="bi bi-printer"></i> Cetak</a>`;
-                    } else if (sj.status === 'PENDING' && IS_ADMIN) {
-                        aksi += `<button class="btn btn-sm btn-success rounded-pill px-3 me-1 mb-1" onclick="approveSJ(${sj.id})"><i class="bi bi-check-circle"></i> Approve</button>`;
-                        aksi += `<button class="btn btn-sm btn-danger rounded-pill px-3 mb-1" onclick="rejectSJ(${sj.id})"><i class="bi bi-x-circle"></i> Deny</button>`;
-                    }
+                    aksi += `<a href="/surat-jalan/${sj.id}/print?print=1" class="btn btn-sm btn-outline-dark rounded-pill px-3 mb-1"><i class="bi bi-printer"></i> Cetak</a>`;
+                    
                     if (IS_ADMIN) {
                         aksi += `<button class="btn btn-sm btn-outline-danger rounded-pill px-2 mb-1 ms-1" onclick="deleteSJ(${sj.id})"><i class="bi bi-trash"></i></button>`;
                     }
@@ -390,14 +379,13 @@
                         <td>${sj.tanggal}</td>
                         <td>${sj.tujuan}</td>
                         <td><i class="bi bi-person me-1 text-muted"></i>${sj.creator}</td>
-                        <td>${badge}</td>
                         <td class="text-end">${aksi}</td>
                     `;
                     tbody.appendChild(tr);
                 });
             })
             .catch(() => {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-danger">Gagal memuat data.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">Gagal memuat data.</td></tr>';
             });
     }
 
@@ -406,22 +394,6 @@
     }
 
     // ─── Status actions ───────────────────────────────────────────────────────
-    function approveSJ(id) {
-        if (!confirm('Approve Surat Jalan ini?')) return;
-        fetch(`/surat-jalan/${id}/status`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-            body: JSON.stringify({ status: 'APPROVED' }),
-        }).then(r => r.json()).then(res => { if (res.success) refreshCurrentSJList(); else alert(res.message); });
-    }
-    function rejectSJ(id) {
-        if (!confirm('Tolak Surat Jalan ini?')) return;
-        fetch(`/surat-jalan/${id}/status`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-            body: JSON.stringify({ status: 'REJECTED' }),
-        }).then(r => r.json()).then(res => { if (res.success) refreshCurrentSJList(); else alert(res.message); });
-    }
     function deleteSJ(id) {
         if (!confirm('Hapus Surat Jalan ini? Data akan tersimpan di Arsip Terhapus.')) return;
         fetch(`/surat-jalan/${id}`, {

@@ -29,10 +29,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/surat-jalan/{id}/print', [SuratJalanController::class, 'show'])->name('surat-jalan.show');
     Route::get('/surat-jalan/{suratJalan}/export-pdf', [SuratJalanController::class, 'exportPdf'])->name('surat-jalan.export-pdf');
 
-    // ── Admin-only Surat Jalan actions ───────────────────────────────────────
+    // 👮 Admin-only Surat Jalan actions 🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️
     Route::middleware('admin')->group(function () {
         Route::get('/surat-jalan/deleted', [SuratJalanController::class, 'deleted'])->name('surat-jalan.deleted');
-        Route::put('/surat-jalan/{suratJalan}/status', [SuratJalanController::class, 'updateStatus'])->name('surat-jalan.status');
         Route::delete('/surat-jalan/{suratJalan}', [SuratJalanController::class, 'destroy'])->name('surat-jalan.destroy');
     });
 

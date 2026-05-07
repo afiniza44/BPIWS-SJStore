@@ -38,7 +38,6 @@ class SuratJalanController extends Controller
             'no_surat_jalan' => $sj->no_surat_jalan,
             'tanggal'        => $sj->tanggal?->format('Y-m-d'),
             'tujuan'         => $sj->tujuan,
-            'status'         => $sj->status,
             'creator'        => $sj->user?->username ?? '-',
             'project_name'   => $sj->project?->name ?? null,
         ]);
@@ -63,7 +62,6 @@ class SuratJalanController extends Controller
 
         try {
             $user   = auth()->user();
-            $status = $user->isAdmin() ? 'APPROVED' : 'PENDING';
 
             // Auto-numbering
             $now    = Carbon::now();
@@ -97,7 +95,7 @@ class SuratJalanController extends Controller
                 $noSJ = str_pad($maxNum + 1, 3, '0', STR_PAD_LEFT) . " {$suffix}";
             }
 
-            DB::transaction(function () use ($request, $user, $status, $noSJ) {
+            DB::transaction(function () use ($request, $user, $noSJ) {
                 $sj = SuratJalan::create([
                     'no_surat_jalan' => $noSJ,
                     'tanggal'        => $request->tanggal,
@@ -111,31 +109,31 @@ class SuratJalanController extends Controller
                     'eta'            => $request->eta ?: null,
                     'foreman'        => $request->foreman,
                     'woc'            => $request->woc,
-                    'status'         => $status,
                     'user_id'        => $user->id,
                     'project_id'     => $request->project_id ?: null,
                 ]);
 
                 foreach ($request->items as $index => $item) {
                     DetailSuratJalan::create([
-                        'surat_jalan_id'   => $sj->id,
-                        'type'             => $item['type'],
-                        'group_title_text' => $item['type'] === 'group_title' ? ($item['text'] ?? null) : null,
-                        'barang_id'        => $item['type'] === 'item' ? ($item['id'] ?? null) : null,
-                        'qty'              => $item['type'] === 'item' ? ($item['qty'] ?? null) : null,
-                        'remark'           => $item['type'] === 'item' ? ($item['remark'] ?? null) : null,
-                        'order_index'      => $index,
+                        'surat_jalan_id'     => $sj->id,
+                        'type'               => $item['type'],
+                        'group_title_text'   => $item['type'] === 'group_title' ? ($item['text'] ?? null) : null,
+                        'manual_nama_barang' => $item['type'] === 'manual_item' ? ($item['nama'] ?? null) : null,
+                        'manual_satuan'      => $item['type'] === 'manual_item' ? ($item['satuan'] ?? null) : null,
+                        'barang_id'          => $item['type'] === 'item' ? ($item['id'] ?? null) : null,
+                        'qty'                => in_array($item['type'], ['item', 'manual_item']) ? ($item['qty'] ?? null) : null,
+                        'remark'             => in_array($item['type'], ['item', 'manual_item']) ? ($item['remark'] ?? null) : null,
+                        'order_index'        => $index,
                     ]);
                 }
             });
 
             // Set session AFTER transaction commits (not inside — avoids any session-DB interaction)
-            session(['last_no_sj' => $noSJ, 'last_sj_status' => $status]);
+            session(['last_no_sj' => $noSJ]);
 
             return response()->json([
                 'success'        => true,
                 'no_surat_jalan' => $noSJ,
-                'status'         => $status,
             ]);
 
         } catch (\Throwable $e) {
@@ -156,16 +154,7 @@ class SuratJalanController extends Controller
         return view('surat-jalan.print', compact('sj'));
     }
 
-    public function updateStatus(Request $request, SuratJalan $suratJalan)
-    {
-        $request->validate([
-            'status' => 'required|in:APPROVED,REJECTED',
-        ]);
 
-        $suratJalan->update(['status' => $request->status]);
-
-        return response()->json(['success' => true, 'message' => 'Status berhasil diubah.']);
-    }
 
     public function destroy(SuratJalan $suratJalan)
     {

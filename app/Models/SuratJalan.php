@@ -14,7 +14,7 @@ class SuratJalan extends Model
     protected $fillable = [
         'no_surat_jalan', 'tanggal', 'tujuan', 'attn', 'phone_header',
         'note', 'taken_by', 'vehicle_no', 'phone_footer', 'eta',
-        'foreman', 'woc', 'status', 'user_id', 'project_id', 'deleted_by',
+        'foreman', 'woc', 'user_id', 'project_id', 'deleted_by',
     ];
 
     protected $casts = [

@@ -137,6 +137,16 @@
                         <td></td>
                         <td colspan="4" class="fw-bold" style="padding-left:6px;">{{ $detail->group_title_text }}</td>
                     </tr>
+                @elseif($detail->type === 'manual_item')
+                    @php $numStr = $insideGroup ? '-' : $rowNum++; @endphp
+                    <tr>
+                        <td class="text-center">{{ $numStr }}</td>
+                        <td class="text-center">-</td>
+                        <td style="padding-left:{{ $insideGroup ? '16px' : '6px' }}">{{ $detail->manual_nama_barang }}</td>
+                        <td class="text-center fw-bold">{{ $detail->qty }}</td>
+                        <td class="text-center">{{ $detail->manual_satuan ?? '-' }}</td>
+                        <td class="text-center">{{ $detail->remark ?? '' }}</td>
+                    </tr>
                 @else
                     @php $numStr = $insideGroup ? '-' : $rowNum++; @endphp
                     <tr>

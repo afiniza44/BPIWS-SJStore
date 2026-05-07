@@ -66,8 +66,11 @@
                     <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 me-2" onclick="addGroupRow()">
                         <i class="bi bi-collection me-1"></i>Tambah Grup (Judul)
                     </button>
-                    <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="addBarangRow()">
-                        <i class="bi bi-plus-circle me-1"></i>Tambah Item Barang
+                    <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 me-2" onclick="addBarangRow()">
+                        <i class="bi bi-plus-circle me-1"></i>Tambah Item (Master)
+                    </button>
+                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="addManualRow()">
+                        <i class="bi bi-pencil-square me-1"></i>Tambah Item (Manual)
                     </button>
                 </div>
             </div>
@@ -288,6 +291,31 @@
         tbody.appendChild(tr);
     }
 
+    function addManualRow() {
+        const tbody = document.getElementById('sjItemList');
+        const tr    = document.createElement('tr');
+        tr.className  = 'fade-in row-item';
+        tr.dataset.type = 'manual_item';
+        tr.innerHTML = `
+            <td class="pb-3 ps-4 align-top">
+                <div class="row gx-2">
+                    <div class="col-8">
+                        <input type="text" class="form-control sj-manual-nama" placeholder="Nama Barang (Manual)" required>
+                    </div>
+                    <div class="col-4">
+                        <input type="text" class="form-control sj-manual-satuan" placeholder="Satuan (opsional)">
+                    </div>
+                </div>
+            </td>
+            <td class="pb-3 align-top"><input type="number" class="form-control sj-qty" min="1" value="1" required></td>
+            <td class="pb-3 align-top"><input type="text" class="form-control sj-remark" placeholder="Remark"></td>
+            <td class="text-center pb-3 align-top">
+                <button type="button" class="btn btn-outline-danger rounded px-3" onclick="this.closest('tr').remove()"><i class="bi bi-x-lg"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    }
+
     // ─── Submit ───────────────────────────────────────────────────────────────
     function submitSuratJalan() {
         const payload = {
@@ -314,6 +342,12 @@
             if (type === 'group_title') {
                 const text = row.querySelector('.sj-group-text')?.value;
                 if (text) payload.items.push({ type: 'group_title', text });
+            } else if (type === 'manual_item') {
+                const nama   = row.querySelector('.sj-manual-nama')?.value;
+                const satuan = row.querySelector('.sj-manual-satuan')?.value || '';
+                const qty    = row.querySelector('.sj-qty')?.value;
+                const remark = row.querySelector('.sj-remark')?.value || '';
+                if (nama && qty) payload.items.push({ type: 'manual_item', nama, satuan, qty: parseInt(qty), remark });
             } else {
                 const barang_id = row.querySelector('.sj-barang')?.value;
                 const qty       = row.querySelector('.sj-qty')?.value;
@@ -332,10 +366,7 @@
         .then(r => r.json())
         .then(res => {
             if (!res.success) { alert('Gagal: ' + (res.message || JSON.stringify(res.errors))); return; }
-            const msg = res.status === 'APPROVED'
-                ? `Sukses. Surat Jalan dibuat: ${res.no_surat_jalan}.`
-                : `Sukses. Surat Jalan diajukan: ${res.no_surat_jalan}. Menunggu Approval Admin.`;
-            alert(msg);
+            alert(`Sukses. Surat Jalan dibuat: ${res.no_surat_jalan}.`);
             window.location.href = '/surat-jalan';
         })
         .catch(() => alert('Terjadi kesalahan koneksi.'));
@@ -373,6 +404,23 @@
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td style="text-align:center;padding:3px;">${rowNum++}</td><td style="padding:3px;"></td><td colspan="4" style="text-align:left;padding:3px 3px 3px 8px;font-weight:bold;">${text}</td>`;
                 tbody.appendChild(tr); insideGroup = true;
+            } else if (type === 'manual_item') {
+                const nama   = row.querySelector('.sj-manual-nama')?.value || '-';
+                const satuan = row.querySelector('.sj-manual-satuan')?.value || '-';
+                const qty    = row.querySelector('.sj-qty')?.value    || '';
+                const remark = row.querySelector('.sj-remark')?.value || '';
+                const numStr   = insideGroup ? '-' : rowNum++;
+                const pad      = insideGroup ? 'padding:3px 3px 3px 20px;' : 'padding:3px 3px 3px 8px;';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="text-align:center;padding:3px;">${numStr}</td>
+                    <td style="text-align:center;padding:3px;">-</td>
+                    <td style="text-align:left;${pad}">${nama}</td>
+                    <td style="text-align:center;font-weight:bold;padding:3px;">${qty}</td>
+                    <td style="text-align:center;padding:3px;">${satuan}</td>
+                    <td style="text-align:center;padding:3px;">${remark}</td>
+                `;
+                tbody.appendChild(tr);
             } else {
                 const selectEl = row.querySelector('.sj-barang');
                 const barangId = selectEl?.value;
