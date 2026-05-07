@@ -482,10 +482,16 @@
         
         rows.forEach(row => {
             if (!row.trim()) return;
-            const cols = row.split('\t');
-            if (cols.length < 2) return; // Need at least description
+            let cols = row.split('\t');
+            
+            // Jika tidak ada tab (mungkin di-copy dari PDF/WA), coba split dengan 2 spasi atau lebih
+            if (cols.length < 2) {
+                cols = row.trim().split(/\s{2,}/);
+            }
+            
+            if (cols.length < 2) return; // Skip baris yang tidak valid
 
-            // Expected columns from user: 1. No, 2. Asset/ID No., 3. Description, 4. Qty, 5. Unit, 6. Remark
+            // Expected columns dari klien: 1. No, 2. Asset/ID No., 3. Description, 4. Qty, 5. Unit, 6. Remark
             const asset_id = cols[1]?.trim() || '';
             const nama     = cols[2]?.trim() || '';
             let qtyStr     = cols[3]?.trim() || '1';
