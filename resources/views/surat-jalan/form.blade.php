@@ -488,14 +488,19 @@
                 cols = row.trim().split(/\s{2,}/);
             }
             
-            // Jika data bukan tab-separated sempurna (misal dari PDF copy yang kadang memuat spasi/tab tak terduga)
-            if (cols.length < 4) {
+            // Cek apakah data dari tab split terlihat valid (punya kolom deskripsi yang tidak kosong)
+            let isTabValid = cols.length >= 4 && cols[2]?.trim() !== '';
+
+            // Jika tidak valid (karena copy dari PDF yang tab-nya berantakan, atau hanya pakai spasi)
+            if (!isTabValid) {
                 let words = row.trim().split(/\s+/);
                 if (words.length >= 4) {
                     let qtyIndex = -1;
-                    // Cari angka qty dari belakang. Regex ini mencocokkan angka dengan titik/koma (misal 1,000 atau 2.5)
+                    // Cari angka qty dari belakang. 
                     for (let i = words.length - 1; i >= 2; i--) {
-                        if (/^[0-9.,]*[0-9][0-9.,]*$/.test(words[i])) {
+                        // Hilangkan karakter tak terlihat (misal Zero-width space)
+                        let w = words[i].replace(/[\u200B-\u200D\uFEFF]/g, '');
+                        if (/^[0-9.,]*[0-9][0-9.,]*$/.test(w)) {
                             qtyIndex = i;
                             break;
                         }
@@ -504,6 +509,7 @@
                         cols = [];
                         cols[0] = words[0]; // No
                         cols[1] = words[1]; // Asset ID
+                        // Jika Asset ID sebenarnya '-', tetap aman.
                         cols[2] = words.slice(2, qtyIndex).join(' '); // Description
                         cols[3] = words[qtyIndex]; // Qty
                         cols[4] = words[qtyIndex + 1] || ''; // Unit
@@ -512,7 +518,8 @@
                 }
             }
             
-            if (cols.length < 4) return; // Skip baris yang masih tidak valid
+            // Pengecekan akhir, jika nama masih kosong atau format benar-benar hancur
+            if (cols.length < 4 || !cols[2]?.trim()) return;
 
             // Expected columns dari klien: 1. No, 2. Asset/ID No., 3. Description, 4. Qty, 5. Unit, 6. Remark
             const asset_id = cols[1]?.trim() || '';
