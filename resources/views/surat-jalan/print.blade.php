@@ -121,7 +121,7 @@
                         @php $numStr = $insideGroup ? '-' : $rowNum++; @endphp
                         <tr>
                             <td class="text-center">{{ $numStr }}</td>
-                            <td class="text-center">-</td>
+                            <td class="text-center">{{ $detail->manual_asset_id ?? '-' }}</td>
                             <td class="{{ $insideGroup ? 'ps-4' : 'ps-2' }}">{{ $detail->manual_nama_barang }}</td>
                             <td class="text-center fw-bold">{{ $detail->qty }}</td>
                             <td class="text-center">{{ $detail->manual_satuan ?? '-' }}</td>

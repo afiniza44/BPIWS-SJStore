@@ -69,8 +69,11 @@
                     <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 me-2" onclick="addBarangRow()">
                         <i class="bi bi-plus-circle me-1"></i>Tambah Item (Master)
                     </button>
-                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="addManualRow()">
+                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 me-2" onclick="addManualRow()">
                         <i class="bi bi-pencil-square me-1"></i>Tambah Item (Manual)
+                    </button>
+                    <button type="button" class="btn btn-success btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#pasteExcelModal">
+                        <i class="bi bi-clipboard-data me-1"></i>Paste dari Excel
                     </button>
                 </div>
             </div>
@@ -299,10 +302,13 @@
         tr.innerHTML = `
             <td class="pb-3 ps-4 align-top">
                 <div class="row gx-2">
-                    <div class="col-8">
+                    <div class="col-3">
+                        <input type="text" class="form-control sj-manual-asset" placeholder="Asset / ID No.">
+                    </div>
+                    <div class="col-6">
                         <input type="text" class="form-control sj-manual-nama" placeholder="Nama Barang (Manual)" required>
                     </div>
-                    <div class="col-4">
+                    <div class="col-3">
                         <input type="text" class="form-control sj-manual-satuan" placeholder="Satuan (opsional)">
                     </div>
                 </div>
@@ -343,11 +349,12 @@
                 const text = row.querySelector('.sj-group-text')?.value;
                 if (text) payload.items.push({ type: 'group_title', text });
             } else if (type === 'manual_item') {
-                const nama   = row.querySelector('.sj-manual-nama')?.value;
-                const satuan = row.querySelector('.sj-manual-satuan')?.value || '';
-                const qty    = row.querySelector('.sj-qty')?.value;
-                const remark = row.querySelector('.sj-remark')?.value || '';
-                if (nama && qty) payload.items.push({ type: 'manual_item', nama, satuan, qty: parseInt(qty), remark });
+                const asset_id = row.querySelector('.sj-manual-asset')?.value || '';
+                const nama     = row.querySelector('.sj-manual-nama')?.value;
+                const satuan   = row.querySelector('.sj-manual-satuan')?.value || '';
+                const qty      = row.querySelector('.sj-qty')?.value;
+                const remark   = row.querySelector('.sj-remark')?.value || '';
+                if (nama && qty) payload.items.push({ type: 'manual_item', asset_id, nama, satuan, qty: parseInt(qty), remark });
             } else {
                 const barang_id = row.querySelector('.sj-barang')?.value;
                 const qty       = row.querySelector('.sj-qty')?.value;
@@ -405,16 +412,17 @@
                 tr.innerHTML = `<td style="text-align:center;padding:3px;">${rowNum++}</td><td style="padding:3px;"></td><td colspan="4" style="text-align:left;padding:3px 3px 3px 8px;font-weight:bold;">${text}</td>`;
                 tbody.appendChild(tr); insideGroup = true;
             } else if (type === 'manual_item') {
-                const nama   = row.querySelector('.sj-manual-nama')?.value || '-';
-                const satuan = row.querySelector('.sj-manual-satuan')?.value || '-';
-                const qty    = row.querySelector('.sj-qty')?.value    || '';
-                const remark = row.querySelector('.sj-remark')?.value || '';
+                const asset_id = row.querySelector('.sj-manual-asset')?.value || '-';
+                const nama     = row.querySelector('.sj-manual-nama')?.value || '-';
+                const satuan   = row.querySelector('.sj-manual-satuan')?.value || '-';
+                const qty      = row.querySelector('.sj-qty')?.value    || '';
+                const remark   = row.querySelector('.sj-remark')?.value || '';
                 const numStr   = insideGroup ? '-' : rowNum++;
                 const pad      = insideGroup ? 'padding:3px 3px 3px 20px;' : 'padding:3px 3px 3px 8px;';
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td style="text-align:center;padding:3px;">${numStr}</td>
-                    <td style="text-align:center;padding:3px;">-</td>
+                    <td style="text-align:center;padding:3px;">${asset_id}</td>
                     <td style="text-align:left;${pad}">${nama}</td>
                     <td style="text-align:center;font-weight:bold;padding:3px;">${qty}</td>
                     <td style="text-align:center;padding:3px;">${satuan}</td>
@@ -463,5 +471,87 @@
         win.document.close(); win.focus();
         setTimeout(() => win.print(), 400);
     }
+
+    // ─── Paste from Excel ──────────────────────────────────────────────────────
+    function processPasteExcel() {
+        const text = document.getElementById('pasteExcelData').value;
+        if (!text.trim()) { alert('Data kosong.'); return; }
+
+        const rows = text.split(/\r?\n/);
+        let count = 0;
+        
+        rows.forEach(row => {
+            if (!row.trim()) return;
+            const cols = row.split('\t');
+            if (cols.length < 2) return; // Need at least description
+
+            // Expected columns from user: 1. No, 2. Asset/ID No., 3. Description, 4. Qty, 5. Unit, 6. Remark
+            const asset_id = cols[1]?.trim() || '';
+            const nama     = cols[2]?.trim() || '';
+            let qtyStr     = cols[3]?.trim() || '1';
+            const satuan   = cols[4]?.trim() || '';
+            const remark   = cols[5]?.trim() || '';
+
+            // Clean qty (handle cases where qty might be empty or have commas)
+            qtyStr = qtyStr.replace(/,/g, '');
+            const qty = parseInt(qtyStr) || 1;
+
+            if (!nama) return; // Skip if no description
+
+            // Generate row
+            addManualRow();
+            // Get the last added row
+            const tr = document.getElementById('sjItemList').lastElementChild;
+            
+            if (tr) {
+                const inputAsset  = tr.querySelector('.sj-manual-asset');
+                const inputNama   = tr.querySelector('.sj-manual-nama');
+                const inputSatuan = tr.querySelector('.sj-manual-satuan');
+                const inputQty    = tr.querySelector('.sj-qty');
+                const inputRemark = tr.querySelector('.sj-remark');
+
+                if (inputAsset) inputAsset.value   = asset_id;
+                if (inputNama) inputNama.value     = nama;
+                if (inputSatuan) inputSatuan.value = satuan;
+                if (inputQty) inputQty.value       = qty;
+                if (inputRemark) inputRemark.value = remark;
+                count++;
+            }
+        });
+
+        document.getElementById('pasteExcelData').value = '';
+        bootstrap.Modal.getInstance(document.getElementById('pasteExcelModal')).hide();
+        
+        if (count > 0) {
+            alert(`Berhasil menambahkan ${count} item dari Excel.`);
+        } else {
+            alert('Gagal membaca data. Pastikan format kolom sesuai (No, Asset/ID, Description, Qty, Unit, Remark).');
+        }
+    }
 </script>
+
+{{-- Paste Excel Modal --}}
+<div class="modal fade" id="pasteExcelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-clipboard-data me-2"></i>Paste Data dari Excel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info small mb-3">
+                    <strong>Format Kolom yang didukung (copy langsung dari Excel):</strong><br>
+                    1. No &nbsp; 2. Asset/ID No. &nbsp; 3. Description of Goods &nbsp; 4. Qty &nbsp; 5. Unit &nbsp; 6. Remark (Opsional)
+                </div>
+                <textarea class="form-control" id="pasteExcelData" rows="10" placeholder="Klik disini, lalu tekan Ctrl+V (Paste) data dari Excel..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-success" onclick="processPasteExcel()">
+                    <i class="bi bi-check2-circle me-1"></i>Proses Data
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 @endpush

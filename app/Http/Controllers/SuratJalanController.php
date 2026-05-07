@@ -118,6 +118,7 @@ class SuratJalanController extends Controller
                         'surat_jalan_id'     => $sj->id,
                         'type'               => $item['type'],
                         'group_title_text'   => $item['type'] === 'group_title' ? ($item['text'] ?? null) : null,
+                        'manual_asset_id'    => $item['type'] === 'manual_item' ? ($item['asset_id'] ?? null) : null,
                         'manual_nama_barang' => $item['type'] === 'manual_item' ? ($item['nama'] ?? null) : null,
                         'manual_satuan'      => $item['type'] === 'manual_item' ? ($item['satuan'] ?? null) : null,
                         'barang_id'          => $item['type'] === 'item' ? ($item['id'] ?? null) : null,

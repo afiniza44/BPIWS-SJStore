@@ -355,6 +355,7 @@
         if (projectId === 'none') url += '?unassigned=true';
         else url += `?project_id=${projectId}`;
 
+        const tbody = document.getElementById('sjTableBody');
         tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4"><div class="spinner-border spinner-border-sm me-2"></div>Memuat...</td></tr>';
 
         fetch(url, { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF } })
