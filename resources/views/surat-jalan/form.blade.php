@@ -60,16 +60,16 @@
 
         {{-- Section 2: Goods --}}
         <div class="card p-4 mb-4 shadow-sm border-0">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold text-primary mb-0"><i class="bi bi-2-circle me-2"></i>Description of Goods</h5>
-                <div>
-                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 me-2" onclick="addGroupRow()">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+                <h5 class="fw-bold text-primary mb-0 flex-shrink-0"><i class="bi bi-2-circle me-2"></i>Description of Goods</h5>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="addGroupRow()">
                         <i class="bi bi-collection me-1"></i>Tambah Grup (Judul)
                     </button>
-                    <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 me-2" onclick="addBarangRow()">
+                    <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="addBarangRow()">
                         <i class="bi bi-plus-circle me-1"></i>Tambah Item (Master)
                     </button>
-                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 me-2" onclick="addManualRow()">
+                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="addManualRow()">
                         <i class="bi bi-pencil-square me-1"></i>Tambah Item (Manual)
                     </button>
                     <button type="button" class="btn btn-success btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#pasteExcelModal">
@@ -417,7 +417,7 @@
                 const satuan   = row.querySelector('.sj-manual-satuan')?.value || '-';
                 const qty      = row.querySelector('.sj-qty')?.value    || '';
                 const remark   = row.querySelector('.sj-remark')?.value || '';
-                const numStr   = insideGroup ? '-' : rowNum++;
+                const numStr   = insideGroup ? '' : rowNum++;
                 const pad      = insideGroup ? 'padding:3px 3px 3px 20px;' : 'padding:3px 3px 3px 8px;';
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -439,7 +439,7 @@
                 const sku      = barang?.sku         || '-';
                 const nama     = barang?.nama_barang || '-';
                 const satuan   = barang?.satuan      || '-';
-                const numStr   = insideGroup ? '-' : rowNum++;
+                const numStr   = insideGroup ? '' : rowNum++;
                 const pad      = insideGroup ? 'padding:3px 3px 3px 20px;' : 'padding:3px 3px 3px 8px;';
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -473,70 +473,141 @@
     }
 
     // ─── Paste from Excel ──────────────────────────────────────────────────────
+    function parseTSV(text) {
+        let result = [];
+        let currentRow = [];
+        let currentCell = "";
+        let inQuotes = false;
+        for (let i = 0; i < text.length; i++) {
+            let char = text[i];
+            if (inQuotes) {
+                if (char === '"') {
+                    if (i + 1 < text.length && text[i + 1] === '"') {
+                        currentCell += '"';
+                        i++;
+                    } else {
+                        inQuotes = false;
+                    }
+                } else {
+                    currentCell += char;
+                }
+            } else {
+                if (char === '"') {
+                    inQuotes = true;
+                } else if (char === '\t') {
+                    currentRow.push(currentCell);
+                    currentCell = "";
+                } else if (char === '\n') {
+                    currentRow.push(currentCell.replace(/\r$/, ''));
+                    currentCell = "";
+                    result.push(currentRow);
+                    currentRow = [];
+                } else if (char !== '\r') {
+                    currentCell += char;
+                }
+            }
+        }
+        if (currentCell !== "" || currentRow.length > 0) {
+            currentRow.push(currentCell.replace(/\r$/, ''));
+            result.push(currentRow);
+        }
+        return result;
+    }
+
     function processPasteExcel() {
         const text = document.getElementById('pasteExcelData').value;
         if (!text.trim()) { alert('Data kosong.'); return; }
 
-        const rows = text.split(/\r?\n/);
         let count = 0;
-        
-        rows.forEach(row => {
-            if (!row.trim()) return;
-            let cols = row.split('\t');
-            // Jika tidak ada tab (mungkin di-copy dari PDF/WA), coba split dengan 2 spasi atau lebih
-            if (cols.length < 2) {
-                cols = row.trim().split(/\s{2,}/);
-            }
-            
-            // Cek apakah data dari tab split terlihat valid (punya kolom deskripsi yang tidak kosong)
-            let isTabValid = cols.length >= 4 && cols[2]?.trim() !== '';
+        const rows = parseTSV(text);
+        const isQty = (val) => val && /^[0-9.,]+$/.test(val.trim());
 
-            // Jika tidak valid (karena copy dari PDF yang tab-nya berantakan, atau hanya pakai spasi)
-            if (!isTabValid) {
-                let words = row.trim().split(/\s+/);
-                if (words.length >= 4) {
-                    let qtyIndex = -1;
-                    // Cari angka qty dari belakang. 
-                    for (let i = words.length - 1; i >= 2; i--) {
-                        // Hilangkan karakter tak terlihat (misal Zero-width space)
-                        let w = words[i].replace(/[\u200B-\u200D\uFEFF]/g, '');
-                        if (/^[0-9.,]*[0-9][0-9.,]*$/.test(w)) {
-                            qtyIndex = i;
-                            break;
+        rows.forEach(cols => {
+            if (cols.length === 0 || (cols.length === 1 && !cols[0].trim())) return;
+
+            // Jika fallback dari PDF (tidak ada tab)
+            if (cols.length === 1) {
+                let rowText = cols[0].trim();
+                let fallbackCols = rowText.split(/\s{2,}/);
+                
+                if (fallbackCols.length >= 3) {
+                    cols = fallbackCols;
+                } else {
+                    // Heuristik PDF spasi tunggal
+                    let words = rowText.split(/\s+/);
+                    if (words.length >= 4) {
+                        let qtyIndex = -1;
+                        for (let i = words.length - 1; i >= 2; i--) {
+                            let w = words[i].replace(/[\u200B-\u200D\uFEFF]/g, '');
+                            if (/^[0-9.,]*[0-9][0-9.,]*$/.test(w)) {
+                                qtyIndex = i;
+                                break;
+                            }
                         }
-                    }
-                    if (qtyIndex !== -1) {
-                        cols = [];
-                        cols[0] = words[0]; // No
-                        cols[1] = words[1]; // Asset ID
-                        // Jika Asset ID sebenarnya '-', tetap aman.
-                        cols[2] = words.slice(2, qtyIndex).join(' '); // Description
-                        cols[3] = words[qtyIndex]; // Qty
-                        cols[4] = words[qtyIndex + 1] || ''; // Unit
-                        cols[5] = words.slice(qtyIndex + 2).join(' '); // Remark
+                        if (qtyIndex !== -1) {
+                            cols = [];
+                            cols[0] = words[0]; 
+                            cols[1] = words[1]; 
+                            cols[2] = words.slice(2, qtyIndex).join(' '); 
+                            cols[3] = words[qtyIndex]; 
+                            cols[4] = words[qtyIndex + 1] || ''; 
+                            cols[5] = words.slice(qtyIndex + 2).join(' '); 
+                        }
                     }
                 }
             }
-            
-            // Pengecekan akhir, jika nama masih kosong atau format benar-benar hancur
-            if (cols.length < 4 || !cols[2]?.trim()) return;
 
-            // Expected columns dari klien: 1. No, 2. Asset/ID No., 3. Description, 4. Qty, 5. Unit, 6. Remark
-            const asset_id = cols[1]?.trim() || '';
-            const nama     = cols[2]?.trim() || '';
-            let qtyStr     = cols[3]?.trim() || '1';
-            const satuan   = cols[4]?.trim() || '';
-            const remark   = cols[5]?.trim() || '';
+            let asset_id = '', nama = '', qtyStr = '1', satuan = '', remark = '';
 
-            // Clean qty (handle cases where qty might be empty or have commas)
+            if (cols.length >= 6) {
+                asset_id = cols[1];
+                nama = cols[2];
+                qtyStr = cols[3];
+                satuan = cols[4];
+                remark = cols.slice(5).join(' ');
+            } else if (cols.length === 5) {
+                if (isQty(cols[3])) { // No, Asset, Desc, Qty, Unit
+                    asset_id = cols[1]; nama = cols[2]; qtyStr = cols[3]; satuan = cols[4];
+                } else if (isQty(cols[2])) { // Asset, Desc, Qty, Unit, Remark
+                    asset_id = cols[0]; nama = cols[1]; qtyStr = cols[2]; satuan = cols[3]; remark = cols[4];
+                } else {
+                    asset_id = cols[1]; nama = cols[2]; qtyStr = cols[3]; satuan = cols[4];
+                }
+            } else if (cols.length === 4) {
+                if (isQty(cols[2])) { // Asset, Desc, Qty, Unit
+                    asset_id = cols[0]; nama = cols[1]; qtyStr = cols[2]; satuan = cols[3];
+                } else if (isQty(cols[1])) { // Desc, Qty, Unit, Remark
+                    nama = cols[0]; qtyStr = cols[1]; satuan = cols[2]; remark = cols[3];
+                } else {
+                    asset_id = cols[0]; nama = cols[1]; qtyStr = cols[2]; satuan = cols[3];
+                }
+            } else if (cols.length === 3) {
+                if (isQty(cols[1])) { // Desc, Qty, Unit
+                    nama = cols[0]; qtyStr = cols[1]; satuan = cols[2];
+                } else {
+                    asset_id = cols[0]; nama = cols[1]; qtyStr = cols[2];
+                }
+            } else if (cols.length === 2) { // Desc, Qty
+                nama = cols[0]; qtyStr = cols[1];
+            } else if (cols.length === 1) { // Desc only
+                nama = cols[0];
+            }
+
+            asset_id = asset_id?.trim() || '';
+            nama = nama?.trim() || '';
+            qtyStr = qtyStr?.trim() || '1';
+            satuan = satuan?.trim() || '';
+            remark = remark?.trim() || '';
+
+            // Skip header row if accidently copied
+            if (nama.toLowerCase().includes('description') || qtyStr.toLowerCase() === 'qty') return;
+
             qtyStr = qtyStr.replace(/,/g, '');
             const qty = parseInt(qtyStr) || 1;
 
-            if (!nama) return; // Skip if no description
+            if (!nama) return;
 
-            // Generate row
             addManualRow();
-            // Get the last added row
             const tr = document.getElementById('sjItemList').lastElementChild;
             
             if (tr) {

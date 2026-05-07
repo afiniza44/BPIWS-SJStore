@@ -118,7 +118,7 @@
                             <td colspan="4" class="ps-2 fw-bold">{{ $detail->group_title_text }}</td>
                         </tr>
                     @elseif($detail->type === 'manual_item')
-                        @php $numStr = $insideGroup ? '-' : $rowNum++; @endphp
+                        @php $numStr = $insideGroup ? '' : $rowNum++; @endphp
                         <tr>
                             <td class="text-center">{{ $numStr }}</td>
                             <td class="text-center">{{ $detail->manual_asset_id ?? '-' }}</td>
@@ -128,7 +128,7 @@
                             <td class="text-center">{{ $detail->remark ?? '' }}</td>
                         </tr>
                     @else
-                        @php $numStr = $insideGroup ? '-' : $rowNum++; @endphp
+                        @php $numStr = $insideGroup ? '' : $rowNum++; @endphp
                         <tr>
                             <td class="text-center">{{ $numStr }}</td>
                             <td class="text-center">{{ $detail->barang?->sku ?? '-' }}</td>
