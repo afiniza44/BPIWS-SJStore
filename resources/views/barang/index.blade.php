@@ -25,14 +25,24 @@
 
     {{-- Search --}}
     <div class="mb-3">
-        <div class="input-group">
-            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-            <input type="text" id="searchBarang" class="form-control border-start-0 ps-0"
-                placeholder="Cari SKU atau Nama Barang..." oninput="filterBarang(this.value)">
-            <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn"
-                onclick="clearSearch()" style="display:none;"><i class="bi bi-x-lg"></i></button>
+        <form method="GET" action="{{ route('barang.index') }}">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="search" id="searchBarang" class="form-control border-start-0 ps-0"
+                    placeholder="Cari SKU atau Nama Barang..." value="{{ request('search') }}">
+                @if(request('search'))
+                <a href="{{ route('barang.index') }}" class="btn btn-outline-secondary" id="clearSearchBtn">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+                @endif
+                <button class="btn btn-primary" type="submit">Cari</button>
+            </div>
+        </form>
+        @if(request('search'))
+        <div class="text-muted small mt-2">
+            <i class="bi bi-info-circle me-1"></i>Menampilkan hasil pencarian untuk <strong>"{{ request('search') }}"</strong>
         </div>
-        <div id="searchResultInfo" class="text-muted small mt-1" style="display:none;"></div>
+        @endif
     </div>
 
     <div class="card p-4">
@@ -84,6 +94,9 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+        <div class="mt-4 d-flex justify-content-center">
+            {{ $barang->links('pagination::bootstrap-5') }}
         </div>
     </div>
 </div>
@@ -181,39 +194,7 @@
     const CSRF = document.querySelector('meta[name="csrf-token"]').content;
     let _importFile = null;
 
-    // ─── Search ───────────────────────────────────────────────────────────────
-    function filterBarang(query) {
-        const clearBtn = document.getElementById('clearSearchBtn');
-        const infoEl   = document.getElementById('searchResultInfo');
-        const tbody    = document.getElementById('barangTableBody');
-        const q        = query.trim().toLowerCase();
-        if (clearBtn) clearBtn.style.display = q ? 'inline-block' : 'none';
-        if (!q) {
-            Array.from(tbody.querySelectorAll('tr')).forEach(tr => tr.style.display = '');
-            if (infoEl) infoEl.style.display = 'none';
-            return;
-        }
-        const rows = Array.from(tbody.querySelectorAll('tr'));
-        let matchCount = 0;
-        rows.forEach(tr => {
-            const sku  = (tr.cells[1]?.textContent || '').toLowerCase();
-            const nama = (tr.cells[2]?.textContent || '').toLowerCase();
-            const ok   = sku.includes(q) || nama.includes(q);
-            tr.style.display = ok ? '' : 'none';
-            if (ok) matchCount++;
-        });
-        if (infoEl) {
-            infoEl.style.display = 'block';
-            infoEl.innerHTML = matchCount === 0
-                ? `<i class="bi bi-exclamation-circle me-1"></i>Tidak ada hasil untuk <strong>"${query}"</strong>.`
-                : `<i class="bi bi-check-circle me-1 text-success"></i>Ditemukan <strong>${matchCount}</strong> barang.`;
-        }
-    }
-    function clearSearch() {
-        const el = document.getElementById('searchBarang');
-        if (el) { el.value = ''; el.focus(); }
-        filterBarang('');
-    }
+    // ─── Search (Removed - now handled by server-side pagination) ──────────
 
     // ─── Modal helpers ────────────────────────────────────────────────────────
     function openAddModal() {

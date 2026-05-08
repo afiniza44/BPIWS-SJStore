@@ -10,9 +10,17 @@ use App\Imports\BarangImport;
 
 class BarangController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $barang = Barang::orderBy('id')->get();
+        $query = Barang::query();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('sku', 'like', "%{$search}%")
+                  ->orWhere('nama_barang', 'like', "%{$search}%");
+        }
+
+        $barang = $query->orderBy('id', 'asc')->paginate(50)->withQueryString();
         return view('barang.index', compact('barang'));
     }
 
