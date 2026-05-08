@@ -61,20 +61,80 @@ class BarangController extends Controller
             'file' => 'required|file|mimes:xlsx,xls|max:102400',
         ]);
 
-        // Temporarily increase memory limit for large Excel files
         ini_set('memory_limit', '1024M');
         set_time_limit(300);
 
         try {
-            $import = new BarangImport();
-            Excel::import($import, $request->file('file'));
+            $inserted = 0;
+            $skipped = 0;
+            $errors = [];
+            $incomingSkus = [];
+            
+            // Read rows efficiently using SimpleExcelReader (uses <2MB RAM)
+            $rows = \Spatie\SimpleExcel\SimpleExcelReader::create($request->file('file')->getPathname())
+                ->getRows();
+            
+            $validRows = [];
+            
+            foreach ($rows as $index => $row) {
+                // $index starts from 0 for the first data row
+                $row = array_change_key_case($row, CASE_LOWER);
+
+                $sku        = trim((string)($row['sku']         ?? ''));
+                $namaBarang = trim((string)($row['nama_barang'] ?? ''));
+                $satuan     = trim((string)($row['satuan']      ?? ''));
+
+                if (!$sku || !$namaBarang || !$satuan) {
+                    $errors[] = [
+                        'row'    => $index + 2, // Header is row 1
+                        'sku'    => $sku ?: '(kosong)',
+                        'reason' => 'Kolom SKU, nama_barang, atau satuan kosong.',
+                    ];
+                    continue;
+                }
+
+                if (isset($incomingSkus[$sku])) {
+                    $skipped++;
+                    continue;
+                }
+
+                $incomingSkus[$sku] = true;
+                $validRows[] = [
+                    'sku'         => $sku,
+                    'nama_barang' => $namaBarang,
+                    'satuan'      => $satuan,
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
+                ];
+            }
+
+            if (!empty($validRows)) {
+                $incomingSkuList = array_column($validRows, 'sku');
+                $existingSkus = Barang::whereIn('sku', $incomingSkuList)->pluck('sku')->flip()->all();
+
+                $toInsert = [];
+                foreach ($validRows as $row) {
+                    if (isset($existingSkus[$row['sku']])) {
+                        $skipped++;
+                    } else {
+                        $toInsert[] = $row;
+                    }
+                }
+
+                if (!empty($toInsert)) {
+                    foreach (array_chunk($toInsert, 500) as $chunk) {
+                        Barang::insert($chunk);
+                        $inserted += count($chunk);
+                    }
+                }
+            }
 
             return response()->json([
                 'success'  => true,
-                'inserted' => $import->inserted,
-                'skipped'  => $import->skipped,
-                'errors'   => $import->errors,
-                'message'  => "Import selesai. {$import->inserted} data ditambahkan, {$import->skipped} dilewati (SKU duplikat).",
+                'inserted' => $inserted,
+                'skipped'  => $skipped,
+                'errors'   => $errors,
+                'message'  => "Import selesai. {$inserted} data ditambahkan, {$skipped} dilewati (SKU duplikat).",
             ]);
         } catch (\Throwable $e) {
             \Log::error('Import error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
