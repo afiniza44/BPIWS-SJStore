@@ -42,6 +42,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/barang', [BarangController::class, 'store'])->name('barang.store');
         Route::put('/barang/{barang}', [BarangController::class, 'update'])->name('barang.update');
         Route::delete('/barang/{barang}', [BarangController::class, 'destroy'])->name('barang.destroy');
+        Route::post('/barang/bulk-delete', [BarangController::class, 'bulkDestroy'])->name('barang.bulk-destroy');
         Route::post('/barang/import', [BarangController::class, 'import'])->name('barang.import');
     });
 

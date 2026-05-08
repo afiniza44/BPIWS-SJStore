@@ -10,6 +10,9 @@
         <h1 class="page-title"><i class="bi bi-box-seam me-2 text-primary"></i>Master Barang</h1>
         @if(auth()->user()->isAdmin())
         <div class="d-flex gap-2">
+            <button class="btn btn-danger shadow-sm" id="btnDeleteSelected" onclick="deleteSelected()" style="display: none;">
+                <i class="bi bi-trash-fill me-2"></i>Hapus Terpilih (<span id="selectedCount">0</span>)
+            </button>
             <button class="btn btn-outline-success shadow-sm" data-bs-toggle="modal" data-bs-target="#importModal" onclick="resetImport()">
                 <i class="bi bi-file-earmark-excel me-2"></i>Import Excel
             </button>
@@ -37,18 +40,28 @@
             <table class="table table-hover align-middle" id="barangTable">
                 <thead>
                     <tr>
+                        @if(auth()->user()->isAdmin())
+                        <th width="5%" class="text-center">
+                            <input class="form-check-input" type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll()">
+                        </th>
+                        @endif
                         <th width="5%">ID</th>
                         <th width="20%">SKU</th>
                         <th width="45%">Nama Barang</th>
                         <th width="15%">Satuan</th>
                         @if(auth()->user()->isAdmin())
-                        <th width="15%" class="text-end">Aksi</th>
+                        <th width="10%" class="text-end">Aksi</th>
                         @endif
                     </tr>
                 </thead>
                 <tbody id="barangTableBody">
                     @forelse($barang as $item)
                     <tr>
+                        @if(auth()->user()->isAdmin())
+                        <td class="text-center">
+                            <input class="form-check-input item-checkbox" type="checkbox" value="{{ $item->id }}" onchange="updateSelectedCount()">
+                        </td>
+                        @endif
                         <td class="fw-bold">{{ $item->id }}</td>
                         <td><span class="badge bg-secondary">{{ $item->sku }}</span></td>
                         <td class="fw-medium text-dark">{{ $item->nama_barang }}</td>
@@ -57,17 +70,17 @@
                         <td class="text-end">
                             <button class="btn btn-sm btn-outline-primary rounded-pill px-3 me-1"
                                 onclick="openEditModal({{ $item->id }}, '{{ addslashes($item->sku) }}', '{{ addslashes($item->nama_barang) }}', '{{ $item->satuan }}')">
-                                <i class="bi bi-pencil-square"></i> Edit
+                                <i class="bi bi-pencil-square"></i>
                             </button>
                             <button class="btn btn-sm btn-outline-danger rounded-pill px-3"
                                 onclick="deleteBarang({{ $item->id }})">
-                                <i class="bi bi-trash"></i> Hapus
+                                <i class="bi bi-trash"></i>
                             </button>
                         </td>
                         @endif
                     </tr>
                     @empty
-                    <tr><td colspan="{{ auth()->user()->isAdmin() ? 5 : 4 }}" class="text-center py-4 text-muted">Belum ada data barang.</td></tr>
+                    <tr><td colspan="{{ auth()->user()->isAdmin() ? 6 : 4 }}" class="text-center py-4 text-muted">Belum ada data barang.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -255,6 +268,70 @@
         .then(r => r.json())
         .then(res => { if (res.success) location.reload(); else alert(res.message); })
         .catch(() => alert('Kesalahan koneksi.'));
+    }
+
+    // ─── Bulk Delete ──────────────────────────────────────────────────────────
+    function toggleSelectAll() {
+        const selectAll = document.getElementById('selectAllCheckbox').checked;
+        document.querySelectorAll('.item-checkbox').forEach(cb => {
+            // Only toggle visible rows in case of search filter
+            if (cb.closest('tr').style.display !== 'none') {
+                cb.checked = selectAll;
+            }
+        });
+        updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+        const selected = document.querySelectorAll('.item-checkbox:checked');
+        const btn = document.getElementById('btnDeleteSelected');
+        const span = document.getElementById('selectedCount');
+        
+        span.innerText = selected.length;
+        
+        if (selected.length > 0) {
+            btn.style.display = 'inline-block';
+        } else {
+            btn.style.display = 'none';
+            document.getElementById('selectAllCheckbox').checked = false;
+        }
+    }
+
+    function deleteSelected() {
+        const selected = Array.from(document.querySelectorAll('.item-checkbox:checked')).map(cb => cb.value);
+        if (selected.length === 0) return;
+
+        // Double confirmation
+        if (!confirm(`Anda telah memilih ${selected.length} data barang. Apakah Anda yakin ingin menghapus data-data ini?`)) {
+            return;
+        }
+        
+        if (!confirm(`KONFIRMASI KE-2:\nTindakan ini PERMANEN dan data tidak dapat dikembalikan.\nLanjutkan penghapusan ${selected.length} data?`)) {
+            return;
+        }
+
+        const btn = document.getElementById('btnDeleteSelected');
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menghapus...`;
+
+        fetch('/barang/bulk-delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+            body: JSON.stringify({ ids: selected })
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                location.reload();
+            } else {
+                alert(res.message || 'Gagal menghapus data.');
+                location.reload();
+            }
+        })
+        .catch(err => {
+            alert('Kesalahan koneksi saat menghapus.');
+            location.reload();
+        });
     }
 
     // ─── Import Excel ─────────────────────────────────────────────────────────

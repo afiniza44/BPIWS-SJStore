@@ -48,6 +48,13 @@ class BarangController extends Controller
         return response()->json(['success' => true, 'message' => 'Barang berhasil dihapus.']);
     }
 
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate(['ids' => 'required|array|min:1']);
+        Barang::whereIn('id', $request->ids)->delete();
+        return response()->json(['success' => true, 'message' => count($request->ids) . ' barang berhasil dihapus.']);
+    }
+
     public function import(Request $request)
     {
         $request->validate([
