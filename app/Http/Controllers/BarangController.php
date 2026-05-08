@@ -61,6 +61,10 @@ class BarangController extends Controller
             'file' => 'required|file|mimes:xlsx,xls|max:102400',
         ]);
 
+        // Temporarily increase memory limit for large Excel files
+        ini_set('memory_limit', '1024M');
+        set_time_limit(300);
+
         try {
             $import = new BarangImport();
             Excel::import($import, $request->file('file'));
@@ -72,7 +76,8 @@ class BarangController extends Controller
                 'errors'   => $import->errors,
                 'message'  => "Import selesai. {$import->inserted} data ditambahkan, {$import->skipped} dilewati (SKU duplikat).",
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            \Log::error('Import error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
             return response()->json(['success' => false, 'message' => 'Import gagal: ' . $e->getMessage()], 422);
         }
     }
