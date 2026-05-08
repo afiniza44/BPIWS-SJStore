@@ -95,7 +95,7 @@ class SuratJalanController extends Controller
                 $noSJ = str_pad($maxNum + 1, 3, '0', STR_PAD_LEFT) . " {$suffix}";
             }
 
-            DB::transaction(function () use ($request, $user, $noSJ) {
+            $sj = DB::transaction(function () use ($request, $user, $noSJ) {
                 $sj = SuratJalan::create([
                     'no_surat_jalan' => $noSJ,
                     'tanggal'        => $request->tanggal,
@@ -127,6 +127,8 @@ class SuratJalanController extends Controller
                         'order_index'        => $index,
                     ]);
                 }
+
+                return $sj;
             });
 
             // Set session AFTER transaction commits (not inside — avoids any session-DB interaction)
@@ -135,6 +137,7 @@ class SuratJalanController extends Controller
             return response()->json([
                 'success'        => true,
                 'no_surat_jalan' => $noSJ,
+                'id'             => $sj->id,
             ]);
 
         } catch (\Throwable $e) {
