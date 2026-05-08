@@ -19,6 +19,7 @@ class BarangImport implements ToArray, WithHeadingRow
         $incomingSkus = [];
 
         foreach ($rows as $index => $row) {
+            if (!is_array($row)) continue;
             $row = array_change_key_case($row, CASE_LOWER);
 
             $sku        = trim((string)($row['sku']         ?? ''));
