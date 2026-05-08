@@ -52,6 +52,7 @@
     <div class="no-print bg-dark py-3 px-4 shadow d-flex justify-content-between align-items-center">
         <button onclick="history.back()" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-left me-1"></i>Kembali</button>
         <h5 class="text-white mb-0">Preview Surat Jalan (Format BAUER)</h5>
+        @if(!$sj->deleted_at)
         <button class="btn btn-primary" onclick="window.print()">
             <i class="bi bi-printer me-2"></i>Cetak Dokumen
         </button>
