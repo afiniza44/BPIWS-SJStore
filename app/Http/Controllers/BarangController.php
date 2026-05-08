@@ -70,8 +70,10 @@ class BarangController extends Controller
             $errors = [];
             $incomingSkus = [];
             
+            $file = $request->file('file');
             // Read rows efficiently using SimpleExcelReader (uses <2MB RAM)
-            $rows = \Spatie\SimpleExcel\SimpleExcelReader::create($request->file('file')->getPathname())
+            // Explicitly pass 'xlsx' or the extension because the temp path has no extension
+            $rows = \Spatie\SimpleExcel\SimpleExcelReader::create($file->getPathname(), $file->getClientOriginalExtension())
                 ->getRows();
             
             $validRows = [];
