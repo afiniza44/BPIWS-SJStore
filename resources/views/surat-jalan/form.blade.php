@@ -9,7 +9,7 @@
 <div class="container" style="max-width:960px;">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="page-title">Buat Surat Jalan Baru</h1>
-        <span class="badge bg-primary fs-6 fw-normal px-3 py-2">Format: PT. BAUER Pratama</span>
+        <span class="badge bg-primary fs-6 fw-normal px-3 py-2">Format: BPI-QR-WS-009 Rev.00</span>
     </div>
 
     <form id="formSuratJalan">
