@@ -545,8 +545,11 @@
         const rows = parseTSV(text);
         const isQty = (val) => val && /^[0-9.,]+$/.test(val.trim());
 
-        rows.forEach(cols => {
-            if (cols.length === 0 || (cols.length === 1 && !cols[0].trim())) return;
+        rows.forEach(rawCols => {
+            if (rawCols.length === 0 || (rawCols.length === 1 && !rawCols[0].trim())) return;
+
+            // Bersihkan kolom kosong yang sering muncul akibat merge cell Excel (banyak tab beruntun)
+            let cols = rawCols.map(c => c.trim()).filter(c => c !== '');
 
             // Jika fallback dari PDF (tidak ada tab)
             if (cols.length === 1) {
