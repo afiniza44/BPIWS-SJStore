@@ -5,8 +5,9 @@ namespace App\Imports;
 use App\Models\Barang;
 use Maatwebsite\Excel\Concerns\ToArray;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
 
-class BarangImport implements ToArray, WithHeadingRow
+class BarangImport implements ToArray, WithHeadingRow, WithChunkReading
 {
     public int $inserted = 0;
     public int $skipped  = 0;
@@ -80,5 +81,10 @@ class BarangImport implements ToArray, WithHeadingRow
             Barang::insert($chunk);
             $this->inserted += count($chunk);
         }
+    }
+
+    public function chunkSize(): int
+    {
+        return 1000;
     }
 }
