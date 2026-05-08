@@ -118,6 +118,8 @@
                             <td></td>
                             <td colspan="4" class="ps-2 fw-bold">{{ $detail->group_title_text }}</td>
                         </tr>
+                    @elseif($detail->type === 'end_group')
+                        @php $insideGroup = false; @endphp
                     @elseif($detail->type === 'manual_item')
                         @php $numStr = $insideGroup ? '' : $rowNum++; @endphp
                         <tr>

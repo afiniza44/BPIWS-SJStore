@@ -72,6 +72,9 @@
                     <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="addManualRow()">
                         <i class="bi bi-pencil-square me-1"></i>Tambah Item (Manual)
                     </button>
+                    <button type="button" class="btn btn-outline-warning btn-sm rounded-pill px-3" onclick="addEndGroupRow()">
+                        <i class="bi bi-dash-circle me-1"></i>Tutup Grup
+                    </button>
                     <button type="button" class="btn btn-success btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#pasteExcelModal">
                         <i class="bi bi-clipboard-data me-1"></i>Paste dari Excel
                     </button>
@@ -118,11 +121,11 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label text-muted small fw-bold">FOREMAN</label>
-                    <input type="text" class="form-control" id="sjForeman" placeholder="Nama Foreman">
+                    <input type="text" class="form-control" id="sjForeman" placeholder="Nama Foreman" value="Ribut W.">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label text-muted small fw-bold">WOC</label>
-                    <input type="text" class="form-control" id="sjWoc" placeholder="WOC">
+                    <input type="text" class="form-control" id="sjWoc" placeholder="WOC" value="Mahendran">
                 </div>
             </div>
             <div class="d-flex justify-content-end mt-4 pt-3 border-top gap-2">
@@ -322,6 +325,22 @@
         tbody.appendChild(tr);
     }
 
+    function addEndGroupRow() {
+        const tbody = document.getElementById('sjItemList');
+        const tr    = document.createElement('tr');
+        tr.className   = 'fade-in row-item';
+        tr.dataset.type = 'end_group';
+        tr.innerHTML = `
+            <td colspan="3" class="pb-3 pt-3 text-center text-muted small fst-italic border-bottom" style="background:#f8f9fa;">
+                --- Batas Akhir Grup ---
+            </td>
+            <td class="text-center pb-3 pt-3 border-bottom" style="background:#f8f9fa;">
+                <button type="button" class="btn btn-outline-danger btn-sm rounded px-3" onclick="this.closest('tr').remove()"><i class="bi bi-x-lg"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    }
+
     // ─── Submit ───────────────────────────────────────────────────────────────
     function submitSuratJalan() {
         const payload = {
@@ -348,6 +367,8 @@
             if (type === 'group_title') {
                 const text = row.querySelector('.sj-group-text')?.value;
                 if (text) payload.items.push({ type: 'group_title', text });
+            } else if (type === 'end_group') {
+                payload.items.push({ type: 'end_group' });
             } else if (type === 'manual_item') {
                 const asset_id = row.querySelector('.sj-manual-asset')?.value || '';
                 const nama     = row.querySelector('.sj-manual-nama')?.value;
@@ -374,7 +395,7 @@
         .then(res => {
             if (!res.success) { alert('Gagal: ' + (res.message || JSON.stringify(res.errors))); return; }
             alert(`Sukses. Surat Jalan dibuat: ${res.no_surat_jalan}.`);
-            window.location.href = '/surat-jalan';
+            window.location.href = `/surat-jalan/${res.id}/print`;
         })
         .catch(() => alert('Terjadi kesalahan koneksi.'));
     }
@@ -411,6 +432,8 @@
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td style="text-align:center;padding:3px;">${rowNum++}</td><td style="padding:3px;"></td><td colspan="4" style="text-align:left;padding:3px 3px 3px 8px;font-weight:bold;">${text}</td>`;
                 tbody.appendChild(tr); insideGroup = true;
+            } else if (type === 'end_group') {
+                insideGroup = false;
             } else if (type === 'manual_item') {
                 const asset_id = row.querySelector('.sj-manual-asset')?.value || '-';
                 const nama     = row.querySelector('.sj-manual-nama')?.value || '-';
