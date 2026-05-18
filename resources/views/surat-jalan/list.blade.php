@@ -74,8 +74,8 @@
             </div>
             <div class="d-flex gap-2 flex-wrap">
                 @if(auth()->user()->isAdmin())
-                <button class="btn btn-sm btn-outline-warning shadow-sm" id="btnRenameProject" style="display:none;" onclick="openRenameProjectModal()">
-                    <i class="bi bi-pencil me-1"></i>Rename
+                <button class="btn btn-sm btn-outline-dark shadow-sm" id="btnRenameProject" style="display:none;" onclick="openRenameProjectModal(currentProjectId)">
+                    <i class="bi bi-pencil me-1"></i>Rename / Edit Header
                 </button>
                 <button class="btn btn-sm btn-outline-danger shadow-sm" id="btnDeleteProject" style="display:none;" onclick="deleteCurrentProject()">
                     <i class="bi bi-trash me-1"></i>Hapus Folder
@@ -154,10 +154,20 @@
             </div>
             <div class="modal-body pt-3">
                 <label class="form-label text-muted small fw-bold">Nama Project</label>
-                <input type="text" class="form-control" id="projectNameInput" placeholder="Contoh: Project Sicincin 2026">
+                <input type="text" class="form-control mb-3" id="projectNameInput" placeholder="Contoh: Project Sicincin 2026">
+                
+                <label class="form-label text-muted small fw-bold">DELIVERY TO (Tujuan)</label>
+                <input type="text" class="form-control mb-3" id="projectDeliveryToInput" placeholder="Nama / Alamat Perusahaan Tujuan (isi '-' jika tidak ada)">
+                
+                <label class="form-label text-muted small fw-bold">ATTN (U.p)</label>
+                <input type="text" class="form-control mb-3" id="projectAttnInput" placeholder="Nama Kontak Person (isi '-' jika tidak ada)">
+                
+                <label class="form-label text-muted small fw-bold">PHONE (Telepon)</label>
+                <input type="text" class="form-control" id="projectPhoneInput" placeholder="Nomor Telepon Tujuan (isi '-' jika tidak ada)">
+                
                 <div id="projectModalError" class="text-danger small mt-2" style="display:none;"></div>
             </div>
-            <div class="modal-footer border-0 pt-0">
+            <div class="modal-footer border-0 pt-0 mt-2">
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
                 <button type="button" class="btn btn-primary" id="projectModalSaveBtn" onclick="saveProject()">Simpan</button>
             </div>
@@ -174,13 +184,18 @@
     let currentProjectName = null;
     let _editingProjectId  = null;
 
+    let masterProjects = [];
+
     // ─── Load projects on page load ──────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => loadProjects());
 
     function loadProjects() {
         fetch('/projects', { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF } })
             .then(r => r.json())
-            .then(renderProjectGrid)
+            .then(projects => {
+                masterProjects = projects;
+                renderProjectGrid(projects);
+            })
             .catch(() => {
                 document.getElementById('projectGrid').innerHTML =
                     '<p class="text-danger" style="grid-column:1/-1">Gagal memuat project.</p>';
@@ -210,8 +225,8 @@
                 </div>
                 ${IS_ADMIN ? `
                 <div class="folder-actions">
-                    <button class="btn btn-sm btn-outline-warning py-0 px-2" title="Rename"
-                        onclick="event.stopPropagation(); openRenameProjectModal(${p.id}, '${p.name.replace(/'/g,'\\\'')}')"
+                    <button class="btn btn-sm btn-outline-dark py-0 px-2" title="Rename"
+                        onclick="event.stopPropagation(); openRenameProjectModal(${p.id})"
                     ><i class="bi bi-pencil"></i></button>
                     <button class="btn btn-sm btn-outline-danger py-0 px-2" title="Hapus"
                         onclick="event.stopPropagation(); deleteProject(${p.id}, '${p.name.replace(/'/g,'\\\'')}')"
@@ -254,18 +269,11 @@
         currentProjectId   = projectId;
         currentProjectName = projectName;
         
-        document.getElementById('view-projects').style.display = 'none';
-        document.getElementById('view-sj-table').style.display = 'none';
-        document.getElementById('view-project-subfolders').style.display = '';
-        document.getElementById('breadcrumbProjectSubName').textContent = projectName;
+        loadSJByProject(projectId, projectName);
     }
 
     function backToSubfolders() {
-        if (currentProjectId === 'none') {
-            showProjectGrid();
-        } else {
-            openProjectFolder(currentProjectId, currentProjectName);
-        }
+        showProjectGrid();
     }
 
     function bulkDownloadProjectPdfs() {
@@ -336,9 +344,9 @@
 
         const breadcrumbFull = document.getElementById('breadcrumbFull');
         if (breadcrumbFull) {
-            breadcrumbFull.innerHTML = `Daftar Surat Jalan / <span class="text-secondary">${projectName}</span> /`;
+            breadcrumbFull.innerHTML = `Daftar Surat Jalan / `;
         }
-        document.getElementById('breadcrumbProjectName').textContent = 'Active Documents';
+        document.getElementById('breadcrumbProjectName').textContent = projectName;
 
 
         const btnBuat = document.getElementById('btnBuatBaruProject');
@@ -367,7 +375,7 @@
                     return;
                 }
                 data.forEach(sj => {
-                    let aksi = `<a href="/surat-jalan/${sj.id}/print" class="btn btn-sm btn-outline-info rounded-pill px-3 me-1 mb-1"><i class="bi bi-eye"></i> Detail</a>`;
+                    let aksi = `<a href="/surat-jalan/${sj.id}/print" class="btn btn-sm btn-outline-secondary rounded-pill px-3 me-1 mb-1"><i class="bi bi-eye"></i> Detail</a>`;
                     aksi += `<a href="/surat-jalan/${sj.id}/print?print=1" class="btn btn-sm btn-outline-dark rounded-pill px-3 mb-1"><i class="bi bi-printer"></i> Cetak</a>`;
                     
                     if (IS_ADMIN) {
@@ -448,21 +456,36 @@
         _editingProjectId = null;
         document.getElementById('projectModalTitle').textContent = 'Tambah Folder Project';
         document.getElementById('projectNameInput').value = '';
+        document.getElementById('projectDeliveryToInput').value = '';
+        document.getElementById('projectAttnInput').value = '';
+        document.getElementById('projectPhoneInput').value = '';
         document.getElementById('projectModalError').style.display = 'none';
         new bootstrap.Modal(document.getElementById('projectModal')).show();
     }
-    function openRenameProjectModal(id, name) {
-        _editingProjectId = id || currentProjectId;
-        const _name = name || currentProjectName;
-        document.getElementById('projectModalTitle').textContent = 'Rename Folder';
-        document.getElementById('projectNameInput').value = _name;
+    function openRenameProjectModal(id) {
+        const p = masterProjects.find(x => x.id == id);
+        if (!p) return;
+        _editingProjectId = p.id;
+        document.getElementById('projectModalTitle').textContent = 'Edit Folder Project';
+        document.getElementById('projectNameInput').value = p.name || '';
+        document.getElementById('projectDeliveryToInput').value = p.delivery_to || '';
+        document.getElementById('projectAttnInput').value = p.attn || '';
+        document.getElementById('projectPhoneInput').value = p.phone_header || '';
         document.getElementById('projectModalError').style.display = 'none';
         new bootstrap.Modal(document.getElementById('projectModal')).show();
     }
     function saveProject() {
-        const name   = document.getElementById('projectNameInput').value.trim();
+        const name        = document.getElementById('projectNameInput').value.trim();
+        const delivery_to = document.getElementById('projectDeliveryToInput').value.trim();
+        const attn        = document.getElementById('projectAttnInput').value.trim();
+        const phone_header = document.getElementById('projectPhoneInput').value.trim();
+        
         const errEl  = document.getElementById('projectModalError');
-        if (!name) { errEl.textContent = 'Nama project tidak boleh kosong.'; errEl.style.display = 'block'; return; }
+        if (!name || !delivery_to || !attn || !phone_header) { 
+            errEl.textContent = 'Semua field (Nama, Delivery To, Attn, Phone) wajib diisi (isi "-" jika kosong).'; 
+            errEl.style.display = 'block'; 
+            return; 
+        }
         errEl.style.display = 'none';
 
         const isEdit = !!_editingProjectId;
@@ -472,7 +495,7 @@
         const btn = document.getElementById('projectModalSaveBtn');
         btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
 
-        fetch(url, { method, headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }, body: JSON.stringify({ name }) })
+        fetch(url, { method, headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }, body: JSON.stringify({ name, delivery_to, attn, phone_header }) })
             .then(r => r.json())
             .then(data => {
                 btn.disabled = false; btn.innerHTML = 'Simpan';

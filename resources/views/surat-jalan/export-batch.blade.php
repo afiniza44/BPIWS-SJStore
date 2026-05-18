@@ -12,7 +12,7 @@
             margin: 0; 
             padding: 0; 
         }
-        @page { size: A4 portrait; margin: 10mm 10mm; }
+        @page { size: A4 portrait; margin: 8mm 10mm; }
 
         .page { width: 100%; position: relative; }
         .page-break { page-break-after: always; }
@@ -51,12 +51,12 @@
         .issued-right { text-align: center; font-weight: bold; padding-right: 35px; }
 
         /* ── SIGNATURES ── */
-        .sig-table { width: 100%; text-align: center; font-size: 8.5pt; margin-top: 6mm; table-layout: fixed; }
-        .sig-table td { vertical-align: bottom; width: 20%; padding: 0 5px; }
-        .sig-sign-area { height: 50px; position: relative; }
-        .sig-dashed { border-bottom: 1px dashed #000; display: inline-block; width: 80%; position: absolute; bottom: 5px; left: 10%; }
-        .sig-named { font-weight: bold; text-decoration: underline; display: inline-block; position: absolute; bottom: 5px; width: 100%; left: 0; }
-        .sig-label { padding-top: 55px; }
+        .sig-table { width: 100%; text-align: center; font-size: 8.5pt; margin-top: 4mm; table-layout: fixed; }
+        .sig-table td { vertical-align: bottom; padding: 0 5px; }
+        .sig-space { height: 40px; }
+        .sig-dashed { color: #000; }
+        .sig-named { font-weight: bold; text-decoration: underline; }
+        .sig-label { padding-top: 3px; }
         
         .doc-ref { font-size: 7pt; color: #888; margin-top: 3mm; }
         
@@ -128,10 +128,10 @@
             </tr>
         </thead>
         <tbody>
-            @php $rowNum = 1; $insideGroup = false; @endphp
+            @php $rowNum = 1; $insideGroup = false; $printedRows = 0; @endphp
             @foreach($sj->details as $detail)
                 @if($detail->type === 'group_title')
-                    @php $insideGroup = true; @endphp
+                    @php $insideGroup = true; $printedRows++; @endphp
                     <tr>
                         <td class="text-center">{{ $rowNum++ }}</td>
                         <td></td>
@@ -140,7 +140,7 @@
                 @elseif($detail->type === 'end_group')
                     @php $insideGroup = false; @endphp
                 @elseif($detail->type === 'manual_item')
-                    @php $numStr = $insideGroup ? '' : $rowNum++; @endphp
+                    @php $numStr = $insideGroup ? '' : $rowNum++; $printedRows++; @endphp
                     <tr>
                         <td class="text-center">{{ $numStr }}</td>
                         <td class="text-center">{{ $detail->manual_asset_id ?? '-' }}</td>
@@ -150,7 +150,7 @@
                         <td class="text-center">{{ $detail->remark ?? '' }}</td>
                     </tr>
                 @else
-                    @php $numStr = $insideGroup ? '' : $rowNum++; @endphp
+                    @php $numStr = $insideGroup ? '' : $rowNum++; $printedRows++; @endphp
                     <tr>
                         <td class="text-center">{{ $numStr }}</td>
                         <td class="text-center">{{ $detail->barang?->sku ?? '-' }}</td>
@@ -162,63 +162,75 @@
                 @endif
             @endforeach
             @if($sj->details->isEmpty())
+                @php $printedRows++; @endphp
                 <tr><td colspan="6" class="text-center text-muted" style="padding:6px;">Tidak ada item.</td></tr>
             @endif
+            
+            {{-- DOMPDF Footer Pusher Hack --}}
+            @php
+                $minRows = 18;
+                if ($printedRows < $minRows) {
+                    $padHeight = ($minRows - $printedRows) * 22;
+                    echo '<tr><td colspan="6" style="border: none; height: ' . $padHeight . 'px;"></td></tr>';
+                }
+            @endphp
         </tbody>
     </table>
 
-    {{-- FOOTER INFO --}}
-    <table class="footer-table">
-        <tr>
-            <td width="100">NOTE</td>
-            <td width="15">:</td>
-            <td class="text-capitalize fw-bold">{{ $sj->note ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td>TAKEN BY</td>
-            <td>:</td>
-            <td class="text-capitalize">{{ $sj->taken_by ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td>VEHICLE NO.</td>
-            <td>:</td>
-            <td class="text-capitalize">{{ $sj->vehicle_no ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td>PHONE</td>
-            <td>:</td>
-            <td>{{ $sj->phone_footer ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td>E.T.A</td>
-            <td>:</td>
-            <td>{{ $sj->eta ? $sj->eta->translatedFormat('d F Y') : '-' }}</td>
-        </tr>
-    </table>
+    <div class="footer-wrapper" style="page-break-inside: avoid; break-inside: avoid; width: 100%;">
+        {{-- FOOTER INFO --}}
+        <table class="footer-table">
+            <tr>
+                <td width="100">NOTE</td>
+                <td width="15">:</td>
+                <td class="text-capitalize fw-bold">{{ $sj->note ?? '-' }}</td>
+            </tr>
+            <tr>
+                <td>TAKEN BY</td>
+                <td>:</td>
+                <td class="text-capitalize">{{ $sj->taken_by ?? '-' }}</td>
+            </tr>
+            <tr>
+                <td>VEHICLE NO.</td>
+                <td>:</td>
+                <td class="text-capitalize">{{ $sj->vehicle_no ?? '-' }}</td>
+            </tr>
+            <tr>
+                <td>PHONE</td>
+                <td>:</td>
+                <td>{{ $sj->phone_footer ?? '-' }}</td>
+            </tr>
+            <tr>
+                <td>E.T.A</td>
+                <td>:</td>
+                <td>{{ $sj->eta ? $sj->eta->translatedFormat('d F Y') : '-' }}</td>
+            </tr>
+        </table>
 
-    {{-- CERTIFY --}}
-    <div class="certify-line">I certify that I have examined and received the above in good condition</div>
+        {{-- CERTIFY --}}
+        <div class="certify-line">I certify that I have examined and received the above in good condition</div>
 
-    {{-- ISSUED --}}
-    <table class="issued-table">
-        <tr>
-            <td>Signature</td>
-            <td class="issued-right">Issued By :<br>PT. Bauer Pratama Indonesia</td>
-        </tr>
-    </table>
+        {{-- ISSUED --}}
+        <table class="issued-table">
+            <tr>
+                <td>Signature</td>
+                <td class="issued-right">Issued By :<br>PT. Bauer Pratama Indonesia</td>
+            </tr>
+        </table>
 
-    {{-- SIGNATURES --}}
-    <table class="sig-table">
-        <tr>
-            <td><div class="sig-sign-area"><span class="sig-dashed"></span></div><div class="sig-label">Driver</div></td>
-            <td><div class="sig-sign-area"><span class="sig-dashed"></span></div><div class="sig-label">Receiver</div></td>
-            <td><div class="sig-sign-area">@if($sj->foreman)<span class="sig-named">{{ $sj->foreman }}</span>@else<span class="sig-dashed"></span>@endif</div><div class="sig-label">Foreman</div></td>
-            <td><div class="sig-sign-area">@if($sj->woc)<span class="sig-named">{{ $sj->woc }}</span>@else<span class="sig-dashed" style="width:50%;left:25%;"></span>@endif</div><div class="sig-label">WOC</div></td>
-            <td><div class="sig-sign-area"><span class="sig-dashed" style="width:90%;left:5%;"></span></div><div class="sig-label">Store Keeper</div></td>
-        </tr>
-    </table>
+        {{-- SIGNATURES --}}
+        <table class="sig-table">
+            <tr>
+                <td style="width: 20%;"><div class="sig-space"></div><div class="sig-dashed">................</div><div class="sig-label">Driver</div></td>
+                <td style="width: 20%;"><div class="sig-space"></div><div class="sig-dashed">................</div><div class="sig-label">Receiver</div></td>
+                <td style="width: 20%;"><div class="sig-space"></div><div>@if($sj->foreman)<span class="sig-named">{{ $sj->foreman }}</span>@else<span class="sig-dashed">................</span>@endif</div><div class="sig-label">Foreman</div></td>
+                <td style="width: 15%;"><div class="sig-space"></div><div>@if($sj->woc)<span class="sig-named">{{ $sj->woc }}</span>@else<span class="sig-dashed">...........</span>@endif</div><div class="sig-label">WOC</div></td>
+                <td style="width: 25%;"><div class="sig-space"></div><div class="sig-dashed">..........................</div><div class="sig-label">Store Keeper</div></td>
+            </tr>
+        </table>
 
-    <div class="doc-ref">BPI-QR-WS-009 Rev.00</div>
+        <div class="doc-ref">BPI-QR-WS-009 Rev.00</div>
+    </div>
 </div>
 @endforeach
 </body>

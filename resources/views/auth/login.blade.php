@@ -178,7 +178,7 @@
             </div>
 
             <div>
-                <div class="tagline">Delivery Note<br><span>Management</span><br>System.</div>
+                <div class="tagline">Sistem<br><span>Manajemen</span><br>Surat Jalan.</div>
             </div>
 
             <div class="stat-items">
@@ -192,7 +192,7 @@
                 </div>
                 <div class="stat-item">
                     <div class="stat-icon"><i class="bi bi-printer"></i></div>
-                    <div class="stat-label">Cetak format resmi BPI-QR-WS-009</div>
+                    <div class="stat-label">Format BPI-QR-WS-009</div>
                 </div>
             </div>
 
@@ -235,7 +235,7 @@
             </form>
 
             <div class="login-footer">
-                Akses terbatas untuk karyawan PT. BAUER Pratama Indonesia
+                Akses terbatas untuk departemen Store Workshop PT. BAUER Pratama Indonesia
             </div>
         </div>
     </div>

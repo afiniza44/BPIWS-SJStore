@@ -62,22 +62,39 @@
         <div class="card p-4 mb-4 shadow-sm border-0">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
                 <h5 class="fw-bold text-primary mb-0 flex-shrink-0"><i class="bi bi-2-circle me-2"></i>Description of Goods</h5>
-                <div class="d-flex flex-wrap gap-2">
-                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="addGroupRow()">
-                        <i class="bi bi-collection me-1"></i>Tambah Grup (Judul)
+                <div class="dropdown">
+                    <button class="btn btn-primary btn-sm rounded-pill px-4 dropdown-toggle shadow-sm" type="button" id="dropdownAddAction" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-plus-lg me-1"></i>Tambah Baris
                     </button>
-                    <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="addBarangRow()">
-                        <i class="bi bi-plus-circle me-1"></i>Tambah Item (Master)
-                    </button>
-                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="addManualRow()">
-                        <i class="bi bi-pencil-square me-1"></i>Tambah Item (Manual)
-                    </button>
-                    <button type="button" class="btn btn-outline-warning btn-sm rounded-pill px-3" onclick="addEndGroupRow()">
-                        <i class="bi bi-dash-circle me-1"></i>Tutup Grup
-                    </button>
-                    <button type="button" class="btn btn-success btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#pasteExcelModal">
-                        <i class="bi bi-clipboard-data me-1"></i>Paste dari Excel
-                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="dropdownAddAction">
+                        <li>
+                            <a class="dropdown-item py-2" href="javascript:void(0)" onclick="addBarangRow()">
+                                <i class="bi bi-plus-circle me-2 text-primary"></i>Tambah Item (Master)
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item py-2" href="javascript:void(0)" onclick="addManualRow()">
+                                <i class="bi bi-pencil-square me-2 text-success"></i>Tambah Item (Manual)
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item py-2" href="javascript:void(0)" onclick="addGroupRow()">
+                                <i class="bi bi-collection me-2 text-secondary"></i>Tambah Grup (Judul)
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item py-2" href="javascript:void(0)" onclick="addEndGroupRow()">
+                                <i class="bi bi-dash-circle me-2 text-dark"></i>Tutup Grup
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item py-2" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#pasteExcelModal">
+                                <i class="bi bi-clipboard-data me-2 text-success"></i>Paste dari Excel
+                            </a>
+                        </li>
+                    </ul>
                 </div>
             </div>
             <div class="table-responsive">
@@ -226,17 +243,32 @@
 <script>
     const CSRF = document.querySelector('meta[name="csrf-token"]').content;
     const masterBarang = @json($barang);
+    const masterProjects = @json($projects);
 
     // Pre-select project from URL
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('sjTanggal').valueAsDate = new Date();
         addBarangRow();
 
-        const params = new URLSearchParams(window.location.search);
-        const pid = params.get('project_id');
-        if (pid) {
-            const sel = document.getElementById('sjProjectId');
-            if (sel) sel.value = pid;
+        const sel = document.getElementById('sjProjectId');
+        if (sel) {
+            sel.addEventListener('change', function() {
+                const pid = this.value;
+                const project = masterProjects.find(p => p.id == pid);
+                if (project) {
+                    if (project.delivery_to) document.getElementById('sjTujuan').value = project.delivery_to;
+                    if (project.attn) document.getElementById('sjAttn').value = project.attn;
+                    if (project.phone_header) document.getElementById('sjPhoneHeader').value = project.phone_header;
+                }
+            });
+
+            const params = new URLSearchParams(window.location.search);
+            const pid = params.get('project_id');
+            if (pid) {
+                sel.value = pid;
+                // trigger change to autofill
+                sel.dispatchEvent(new Event('change'));
+            }
         }
     });
 

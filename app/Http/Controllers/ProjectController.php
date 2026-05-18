@@ -23,9 +23,19 @@ class ProjectController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate(['name' => 'required|string|unique:projects,name']);
+        $request->validate([
+            'name' => 'required|string|unique:projects,name',
+            'delivery_to' => 'required|string',
+            'attn' => 'required|string',
+            'phone_header' => 'required|string',
+        ]);
 
-        $project = Project::create(['name' => $request->name]);
+        $project = Project::create([
+            'name' => $request->name,
+            'delivery_to' => $request->delivery_to,
+            'attn' => $request->attn,
+            'phone_header' => $request->phone_header,
+        ]);
         $project->sj_count = 0;
 
         return response()->json(['success' => true, 'project' => $project]);
@@ -35,9 +45,17 @@ class ProjectController extends Controller
     {
         $request->validate([
             'name' => 'required|string|unique:projects,name,' . $project->id,
+            'delivery_to' => 'required|string',
+            'attn' => 'required|string',
+            'phone_header' => 'required|string',
         ]);
 
-        $project->update(['name' => $request->name]);
+        $project->update([
+            'name' => $request->name,
+            'delivery_to' => $request->delivery_to,
+            'attn' => $request->attn,
+            'phone_header' => $request->phone_header,
+        ]);
 
         return response()->json(['success' => true, 'message' => 'Project berhasil diubah.']);
     }

@@ -9,8 +9,8 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { background-color: #f7f9fa; font-family: Arial, sans-serif; font-size: 10pt; font-weight: normal; }
-        @page { size: A4 portrait; margin: 0; }
-        .page-a4 { width: 210mm; min-height: 297mm; padding: 8mm 10mm; margin: 10mm auto; background: white; box-shadow: 0 4px 15px rgba(0,0,0,.12); box-sizing: border-box; display: flex; flex-direction: column; }
+        @page { size: A4 portrait; margin: 0.19in 0.4in 0.1in 0.4in; }
+        .page-a4 { width: 210mm; min-height: 289mm; padding: 8mm 10mm; margin: 10mm auto; background: white; box-shadow: 0 4px 15px rgba(0,0,0,.12); box-sizing: border-box; display: flex; flex-direction: column; }
         .company-header { display: flex; align-items: flex-start; margin-bottom: 6mm; }
         .bauer-logo-img { width: 65px; object-fit: contain; margin-right: 8px; }
         .company-name { font-size: 12pt; font-weight: bold; margin-bottom: 1px; }
@@ -29,20 +29,24 @@
         .table-custom th { padding: 4px 3px; background-color: #eff1f0; -webkit-print-color-adjust: exact; print-color-adjust: exact; text-align: center; font-weight: bold; }
         .table-custom td { padding: 3px; vertical-align: top; }
         .page-spacer { flex: 1; }
-        .footer-info { display: grid; grid-template-columns: 100px 12px auto; row-gap: 3px; font-size: 9pt; font-weight: bold; text-transform: uppercase; margin-top: 6mm; margin-bottom: 2mm; }
-        .certify-line { font-size: 8.5pt; font-style: italic; margin-top: 3mm; margin-bottom: 3mm; }
+        .footer-wrapper { page-break-inside: avoid; break-inside: avoid; width: 100%; }
+        .footer-info { display: grid; grid-template-columns: 100px 12px auto; row-gap: 3px; font-size: 9pt; font-weight: bold; text-transform: uppercase; margin-top: 4mm; margin-bottom: 2mm; }
+        .certify-line { font-size: 8.5pt; font-style: italic; margin-top: 2mm; margin-bottom: 2mm; }
         .issued-row { display: flex; justify-content: space-between; align-items: flex-start; font-size: 9pt; margin-bottom: 2mm; }
         .issued-right { text-align: center; font-weight: bold; margin-right: 35px; }
-        .sig-container { display: flex; justify-content: space-between; align-items: flex-end; text-align: center; font-size: 8.5pt; margin-top: 6mm; }
+        .sig-container { display: flex; justify-content: space-between; align-items: flex-end; text-align: center; font-size: 8.5pt; margin-top: 4mm; }
         .sig-box { flex: 1; padding: 0 5px; }
         .sig-sign-area { height: 50px; display: flex; justify-content: center; font-size: 8pt; }
         .sig-sign-area.dashed { align-items: flex-end; }
         .sig-sign-area.named { align-items: flex-end; font-weight: bold; text-decoration: underline; text-underline-offset: 3px; }
         .sig-label { padding-top: 3px; }
-        .doc-ref { font-size: 7pt; color: #888; margin-top: 3mm; }
+        .doc-ref { font-size: 7pt; color: #888; margin-top: 2mm; }
         @media print {
+            @page { size: A4 portrait; margin: 0; }
             body { background: transparent; margin: 0; padding: 0 !important; overflow: visible !important; }
-            .page-a4 { margin: 0; box-shadow: none; }
+            .page-a4 { margin: 0; padding: 8mm 10mm; box-shadow: none; min-height: 296mm; border: none; display: flex; flex-direction: column; }
+            .page-spacer { display: block; flex: 1; }
+            .pb-5 { padding-bottom: 0 !important; }
             .no-print { display: none !important; }
         }
     </style>
@@ -150,31 +154,33 @@
 
         <div class="page-spacer"></div>
 
-        <div class="footer-info">
-            <div>NOTE</div><div>:</div><div class="text-capitalize fw-bold">{{ $sj->note ?? '-' }}</div>
-            <div>TAKEN BY</div><div>:</div><div class="text-capitalize">{{ $sj->taken_by ?? '-' }}</div>
-            <div>VEHICLE NO.</div><div>:</div><div class="text-capitalize">{{ $sj->vehicle_no ?? '-' }}</div>
-            <div>PHONE</div><div>:</div><div>{{ $sj->phone_footer ?? '-' }}</div>
-            <div>E.T.A</div><div>:</div>
-            <div>{{ $sj->eta ? $sj->eta->translatedFormat('d F Y') : '-' }}</div>
+        <div class="footer-wrapper">
+            <div class="footer-info">
+                <div>NOTE</div><div>:</div><div class="text-capitalize fw-bold">{{ $sj->note ?? '-' }}</div>
+                <div>TAKEN BY</div><div>:</div><div class="text-capitalize">{{ $sj->taken_by ?? '-' }}</div>
+                <div>VEHICLE NO.</div><div>:</div><div class="text-capitalize">{{ $sj->vehicle_no ?? '-' }}</div>
+                <div>PHONE</div><div>:</div><div>{{ $sj->phone_footer ?? '-' }}</div>
+                <div>E.T.A</div><div>:</div>
+                <div>{{ $sj->eta ? $sj->eta->translatedFormat('d F Y') : '-' }}</div>
+            </div>
+
+            <div class="certify-line">I certify that I have examined and received the above in good condition</div>
+
+            <div class="issued-row">
+                <div>Signature</div>
+                <div class="issued-right">Issued By :<br>PT. Bauer Pratama Indonesia</div>
+            </div>
+
+            <div class="sig-container">
+                <div class="sig-box"><div class="sig-sign-area dashed">................</div><div class="sig-label">Driver</div></div>
+                <div class="sig-box"><div class="sig-sign-area dashed">................</div><div class="sig-label">Receiver</div></div>
+                <div class="sig-box"><div class="sig-sign-area named">{{ $sj->foreman ?? '' }}</div><div class="sig-label">Foreman</div></div>
+                <div class="sig-box" style="max-width:90px;"><div class="sig-sign-area named">{{ $sj->woc ?? '' }}</div><div class="sig-label">WOC</div></div>
+                <div class="sig-box"><div class="sig-sign-area dashed">..........................</div><div class="sig-label">Store Keeper</div></div>
+            </div>
+
+            <div class="doc-ref">BPI-QR-WS-009 Rev.00</div>
         </div>
-
-        <div class="certify-line">I certify that I have examined and received the above in good condition</div>
-
-        <div class="issued-row">
-            <div>Signature</div>
-            <div class="issued-right">Issued By :<br>PT. Bauer Pratama Indonesia</div>
-        </div>
-
-        <div class="sig-container">
-            <div class="sig-box"><div class="sig-sign-area dashed">................</div><div class="sig-label">Driver</div></div>
-            <div class="sig-box"><div class="sig-sign-area dashed">................</div><div class="sig-label">Receiver</div></div>
-            <div class="sig-box"><div class="sig-sign-area named">{{ $sj->foreman ?? '' }}</div><div class="sig-label">Foreman</div></div>
-            <div class="sig-box" style="max-width:90px;"><div class="sig-sign-area named">{{ $sj->woc ?? '' }}</div><div class="sig-label">WOC</div></div>
-            <div class="sig-box"><div class="sig-sign-area dashed">..........................</div><div class="sig-label">Store Keeper</div></div>
-        </div>
-
-        <div class="doc-ref">BPI-QR-WS-009 Rev.00</div>
     </div>
 
     </div>

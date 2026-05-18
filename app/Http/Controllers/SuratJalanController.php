@@ -81,8 +81,8 @@ class SuratJalanController extends Controller
             } else {
                 // Fetch all matching SJ numbers and find the max in PHP
                 // Avoids CAST/SPLIT_PART raw SQL that can corrupt Neon pgBouncer connections
-                $existing = SuratJalan::withTrashed()
-                    ->where('no_surat_jalan', 'LIKE', "%{$suffix}")
+                // Fetch active SJ numbers to calculate max, so if the latest is deleted, we reuse its number
+                $existing = SuratJalan::where('no_surat_jalan', 'LIKE', "%{$suffix}")
                     ->pluck('no_surat_jalan');
 
                 $maxNum = 0;
@@ -162,7 +162,11 @@ class SuratJalanController extends Controller
 
     public function destroy(SuratJalan $suratJalan)
     {
-        $suratJalan->update(['deleted_by' => auth()->id()]);
+        // Append _del_timestamp to free up the unique constraint so the number can be reused
+        $suratJalan->update([
+            'deleted_by' => auth()->id(),
+            'no_surat_jalan' => $suratJalan->no_surat_jalan . '_del_' . time(),
+        ]);
         $suratJalan->delete();
 
         return response()->json(['success' => true, 'message' => 'Surat Jalan berhasil dihapus.']);
@@ -174,16 +178,20 @@ class SuratJalanController extends Controller
             ->with(['user', 'project', 'deletedByUser'])
             ->orderByDesc('deleted_at')
             ->get()
-            ->map(fn($sj) => [
+            ->map(function($sj) {
+                // Strip the _del_ suffix for display purposes
+                $displayNo = preg_replace('/_del_\d+$/', '', $sj->no_surat_jalan);
+                return [
                 'id'             => $sj->id,
-                'no_surat_jalan' => $sj->no_surat_jalan,
+                'no_surat_jalan' => $displayNo,
                 'tanggal'        => $sj->tanggal?->format('Y-m-d'),
                 'tujuan'         => $sj->tujuan,
                 'project_name'   => $sj->project?->name ?? null,
                 'creator'        => $sj->user?->username ?? '-',
                 'deleted_by_name' => $sj->deletedByUser?->username ?? '-',
                 'deleted_at'     => $sj->deleted_at?->toIso8601String(),
-            ]);
+                ];
+            });
 
         return response()->json($deleted);
     }

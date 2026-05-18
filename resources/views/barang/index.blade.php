@@ -2,6 +2,16 @@
 @section('title', 'Master Barang')
 @push('head')
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        .pagination-wrapper nav > div.d-sm-flex {
+            flex-direction: column-reverse !important;
+            align-items: center !important;
+            gap: 0.5rem;
+        }
+        .pagination-wrapper nav > div.d-sm-flex > div p {
+            margin-bottom: 0;
+        }
+    </style>
 @endpush
 
 @section('content')
@@ -95,7 +105,7 @@
                 </tbody>
             </table>
         </div>
-        <div class="mt-4 d-flex justify-content-center">
+        <div class="mt-4 d-flex justify-content-center pagination-wrapper">
             {{ $barang->links('pagination::bootstrap-5') }}
         </div>
     </div>
